@@ -20,6 +20,10 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    # Make the ingestion package importable from DAGs (./ingestion is bind-mounted
+    # to /opt/airflow/ingestion below, but Airflow only puts /opt/airflow/dags on
+    # PYTHONPATH by default).
+    PYTHONPATH: /opt/airflow
     # Pass Snowflake creds through from the host .env so DAGs/ingestion can use them.
     SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT:-}
     SNOWFLAKE_USER: ${SNOWFLAKE_USER:-}

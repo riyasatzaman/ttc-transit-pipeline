@@ -1,0 +1,1 @@
+-- Custom dbt test: fails if recorded_at is implausible (future / pre-2020). Day 6-7.

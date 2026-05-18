@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.python-version
+
+# OS
+.DS_Store
+
+# Env / secrets
+.env
+dbt_ttc/profiles.yml
+.streamlit/secrets.toml
+
+# Logs
+logs/
+
+# dbt artifacts
+dbt_ttc/target/
+dbt_ttc/dbt_packages/
+dbt_ttc/logs/
+
+# Airflow local state
+airflow.cfg
+airflow.db
+airflow-webserver.pid
+plugins/
+
+# Local raw data (kept out of git when large)
+data/
+raw/
+*.parquet

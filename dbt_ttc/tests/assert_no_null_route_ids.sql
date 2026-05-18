@@ -1,0 +1,1 @@
+-- Custom dbt test: fails if any route_id is null in staging. Day 6-7.

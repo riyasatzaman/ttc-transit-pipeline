@@ -9,7 +9,7 @@
 # across Airflow + dbt + Snowflake connector versions.
 
 x-airflow-common: &airflow-common
-  build: .
+  image: ttc-airflow:2.8.4
   platform: linux/amd64
   environment:
     &airflow-common-env
@@ -77,6 +77,7 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
+    build: .
     command: webserver
     ports:
       - "8080:8080"

@@ -85,3 +85,61 @@ models:
         description: "Leading segment of the title (usually equals route_id)."
       - name: route_long_name
         description: "Descriptive portion of the title."
+
+  - name: int_vehicle_delays
+    description: >
+      Per-observation enrichment of stg_vehicle_positions. Adds route name,
+      hour-of-day / day-of-week, a per-vehicle LAG signal, and a
+      secs_since_report-based delay proxy. Drives the route reliability and
+      hourly heatmap marts.
+    columns:
+      - name: vehicle_id
+        description: "TTC vehicle id."
+        tests:
+          - not_null
+      - name: route_id
+        description: "TTC route number."
+        tests:
+          - not_null
+      - name: route_name
+        description: "Human-readable route name from stg_routes (falls back to route_id)."
+      - name: recorded_at
+        description: "Original observation timestamp (UTC)."
+        tests:
+          - not_null
+      - name: hour_of_day
+        description: "0-23, derived from recorded_at."
+      - name: day_of_week
+        description: "Snowflake DAYOFWEEK convention (0=Sunday, 6=Saturday)."
+      - name: is_delayed
+        description: "True when secs_since_report > 120."
+      - name: delay_proxy_seconds
+        description: "max(0, secs_since_report - 120). Continuous delay signal."
+
+  - name: int_route_performance
+    description: >
+      Performance metrics aggregated by route × direction × hour × day-of-week.
+      Reduces row-level observations into the grain the dashboard marts consume.
+    columns:
+      - name: route_id
+        description: "TTC route number."
+        tests:
+          - not_null
+      - name: hour_of_day
+        description: "0-23."
+        tests:
+          - not_null
+      - name: day_of_week
+        description: "0-6, Snowflake convention (0=Sunday)."
+        tests:
+          - not_null
+      - name: total_observations
+        description: "Number of int_vehicle_delays rows in this group."
+        tests:
+          - not_null
+      - name: pct_on_time
+        description: "Percent of observations not flagged as delayed (0-100)."
+        tests:
+          - not_null
+      - name: pct_delayed
+        description: "Percent of observations flagged as delayed (0-100)."

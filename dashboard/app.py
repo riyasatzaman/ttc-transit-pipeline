@@ -9,7 +9,7 @@ from utils.snowflake_connector import query_df
 from utils.ui import TTC_RED, footer, format_relative
 
 st.set_page_config(
-    page_title="TTC Transit Analytics",
+    page_title="TTC Transit Reliability Monitor",
     page_icon="🚇",
     layout="wide",
 )
@@ -30,10 +30,18 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown(f"<h1>🚇 TTC Transit Analytics</h1>", unsafe_allow_html=True)
+st.markdown(f"<h1>🚇 TTC Transit Reliability Monitor</h1>", unsafe_allow_html=True)
 st.markdown(
     "<p style='color: #bbb; font-size: 1.1rem;'>"
-    "Live route reliability and delay analytics for the Toronto Transit Commission."
+    "A live analytics dashboard tracking route signal freshness and reliability "
+    "patterns across Toronto's transit network."
+    "</p>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<p style='color: #888; font-size: 0.95rem;'>"
+    "Powered by an Airflow → Snowflake → dbt → Streamlit pipeline ingesting "
+    "live TTC vehicle data every 15 minutes."
     "</p>",
     unsafe_allow_html=True,
 )
@@ -76,16 +84,25 @@ st.markdown(
 st.markdown("### What's on each page")
 nav_col1, nav_col2, nav_col3 = st.columns(3)
 nav_col1.markdown(
-    "**🚌 Route Reliability**  \nWhich TTC routes are most/least on time? "
-    "Sortable leaderboard with green/yellow/red tiers."
+    "**🚌 Route Reliability**  \nWhich TTC routes have the most consistent live "
+    "reporting? Sortable leaderboard with green/yellow/red tiers."
 )
 nav_col2.markdown(
-    "**🔥 Delay Heatmap**  \nWhen during the week is a given route most stressed? "
-    "24 × 7 grid with redder = less responsive reporting."
+    "**🔥 Reliability Heatmap**  \nWhen during the week is a given route's "
+    "signal lag highest? 24 × 7 grid with redder = higher signal lag."
 )
 nav_col3.markdown(
-    "**⏰ Best Time to Ride**  \nWhen should you take a route for the smoothest "
-    "experience? Hourly bar chart with the best windows highlighted."
+    "**⏰ Best Observed Windows**  \nWhich hours have the lowest signal lag "
+    "for a given route? Hourly bar chart with the lowest-lag windows highlighted."
 )
+
+with st.expander("How this metric is calculated"):
+    st.markdown(
+        "This dashboard uses live vehicle reporting lag (seconds since last "
+        "position ping) as a route reliability proxy. Lower values indicate "
+        "fresher live vehicle reporting and more consistent service presence. "
+        "True schedule-adherence delay requires GTFS `stop_times` and spatial "
+        "matching, which is listed as a planned improvement."
+    )
 
 footer()

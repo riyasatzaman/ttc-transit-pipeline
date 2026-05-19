@@ -18,7 +18,7 @@ from utils.snowflake_connector import query_df
 from utils.ui import TTC_RED, PLOTLY_TEMPLATE, footer, page_header
 
 st.set_page_config(
-    page_title="Best Time to Ride — TTC",
+    page_title="Best Observed Windows — TTC",
     page_icon="⏰",
     layout="wide",
 )
@@ -31,10 +31,10 @@ st.markdown(
 )
 
 page_header(
-    "Best Time to Ride",
+    "Best Observed Windows",
     "⏰",
-    "Green bars mark the 25% of hours with the lowest reporting friction "
-    "for the selected route (proxy for less congestion / denser service).",
+    "Green bars mark the 25% of hours with the lowest signal lag "
+    "for the selected route (indicator of more consistent service).",
 )
 
 
@@ -135,10 +135,39 @@ best_label = (
     else "—"
 )
 
-c1, c2, c3 = st.columns(3)
+c1, c2, c3 = st.columns([1, 1, 2])
 c1.metric("Observations",   f"{total_obs:,}")
 c2.metric("Hours observed", f"{hours_observed} / 24")
-c3.metric("Best windows",   best_label)
+# c3 uses a custom HTML block instead of st.metric so the time-range list
+# can wrap. st.metric forces white-space:nowrap on the value, which
+# truncates "12am-1am · 2am-3am · 5pm-6pm · ..." with an ellipsis.
+c3.markdown(
+    f"""
+    <div style="
+        background-color: rgba(218,41,28,0.06);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border-left: 3px solid {TTC_RED};
+        min-height: 6.5rem;
+    ">
+        <div style="color: rgba(250,250,250,0.6); font-size: 0.875rem;">
+            Best windows
+        </div>
+        <div style="
+            color: #fafafa;
+            font-size: 1.25rem;
+            font-weight: 400;
+            line-height: 1.4;
+            margin-top: 0.25rem;
+            white-space: normal;
+            word-break: break-word;
+        ">
+            {best_label}
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 fig = px.bar(
     df,
@@ -148,7 +177,7 @@ fig = px.bar(
     color_discrete_map={True: "#1e7e34", False: TTC_RED},
     labels={
         "HOUR_OF_DAY":  "Hour of day",
-        "AVG_DELAY_S":  "Avg seconds since last vehicle report",
+        "AVG_DELAY_S":  "Avg signal lag (s)",
         "is_best":      "Best window",
     },
     hover_data={"HOUR_OF_DAY": False, "hour_label": True, "TOTAL_OBS": True},
@@ -167,11 +196,18 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 st.caption(
-    f"Threshold: avg delay ≤ {threshold:.1f}s (the 25th percentile of "
-    "observed hours for this route). Lower values mean more responsive "
-    "reporting — usually a sign of denser service and less friction. "
-    "Hover any bar for the hourly sample size; gaps are hours the ingestion "
-    "DAG hasn't observed yet."
+    "Green bars highlight the lowest-lag observed hours for this route. "
+    "Lower signal lag generally means more consistent live reporting and "
+    "denser observed service."
 )
+
+with st.expander("How this metric is calculated"):
+    st.markdown(
+        "This dashboard uses live vehicle reporting lag (seconds since last "
+        "position ping) as a route reliability proxy. Lower values indicate "
+        "fresher live vehicle reporting and more consistent service presence. "
+        "True schedule-adherence delay requires GTFS `stop_times` and spatial "
+        "matching, which is listed as a planned improvement."
+    )
 
 footer()

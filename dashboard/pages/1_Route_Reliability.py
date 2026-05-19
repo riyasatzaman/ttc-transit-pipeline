@@ -107,8 +107,8 @@ styled = (
             "TOTAL_OBSERVATIONS":      "Observations",
             "DISTINCT_VEHICLES":       "Vehicles",
             "PCT_ON_TIME":             "On-time %",
-            "PCT_DELAYED":             "Delayed %",
-            "AVG_DELAY_PROXY_SECONDS": "Avg delay (s)",
+            "PCT_DELAYED":             "Lagged %",
+            "AVG_DELAY_PROXY_SECONDS": "Avg signal lag (s)",
             "AVG_SPEED_KMH":           "Avg speed (km/h)",
             "LAST_OBSERVED_AT":        "Last observed",
         }
@@ -117,13 +117,13 @@ styled = (
     .map(color_pct_on_time, subset=["On-time %"])
     .format(
         {
-            "On-time %":        "{:.2f}",
-            "Delayed %":        "{:.2f}",
-            "Avg delay (s)":    "{:.1f}",
-            "Avg speed (km/h)": "{:.1f}",
-            "Observations":     "{:,.0f}",
-            "Vehicles":         "{:,.0f}",
-            "Last observed":    "{:%Y-%m-%d %H:%M UTC}",
+            "On-time %":          "{:.2f}",
+            "Lagged %":           "{:.2f}",
+            "Avg signal lag (s)": "{:.1f}",
+            "Avg speed (km/h)":   "{:.1f}",
+            "Observations":       "{:,.0f}",
+            "Vehicles":           "{:,.0f}",
+            "Last observed":      "{:%Y-%m-%d %H:%M UTC}",
         }
     )
 )
@@ -133,7 +133,17 @@ st.caption(
     f"Showing {len(df):,} routes with ≥ {min_obs:,} observations. "
     "**On-time %** = share of observations where the vehicle pinged the "
     "feed within the last 2 minutes (proxy for the vehicle being live and "
-    "not stuck offline). **Avg delay** is `max(0, secs_since_report - 120)`."
+    "not stuck offline). **Avg signal lag (s)** is "
+    "`max(0, secs_since_report - 120)`."
 )
+
+with st.expander("How this metric is calculated"):
+    st.markdown(
+        "This dashboard uses live vehicle reporting lag (seconds since last "
+        "position ping) as a route reliability proxy. Lower values indicate "
+        "fresher live vehicle reporting and more consistent service presence. "
+        "True schedule-adherence delay requires GTFS `stop_times` and spatial "
+        "matching, which is listed as a planned improvement."
+    )
 
 footer()

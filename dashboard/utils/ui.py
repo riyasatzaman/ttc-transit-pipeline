@@ -48,7 +48,8 @@ def footer() -> None:
         f"""
         <hr style='margin-top: 2rem; border: none; border-top: 1px solid #333;'>
         <p style='color: #666; font-size: 0.85rem;'>
-            Data refreshed hourly by Airflow + dbt · Built by Riyasat Zaman ·
+            Unofficial analytics project · Not affiliated with TTC ·
+            Built by Riyasat Zaman · Airflow + dbt + Snowflake + Streamlit ·
             <a href='https://github.com/riyasatzaman/ttc-transit-pipeline'
                style='color: {TTC_RED};'>Source on GitHub</a>
         </p>

@@ -9,8 +9,8 @@ __pycache__/
 
 # Env / secrets
 .env
-dbt_ttc/profiles.yml
 .streamlit/secrets.toml
+# Note: dbt_ttc/profiles.yml is committed because it uses env_var() references only.
 
 # Logs
 logs/
@@ -19,6 +19,7 @@ logs/
 dbt_ttc/target/
 dbt_ttc/dbt_packages/
 dbt_ttc/logs/
+dbt_ttc/.user.yml
 
 # Airflow local state
 airflow.cfg

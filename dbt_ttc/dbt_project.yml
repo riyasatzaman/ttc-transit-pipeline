@@ -1,1 +1,34 @@
-# dbt project config — filled in on Day 6-7.
+# dbt project config for the TTC Transit Analytics Pipeline.
+
+name: 'ttc_analytics'
+version: '1.0.0'
+config-version: 2
+
+# Matches the `outputs` key in profiles.yml.
+profile: 'ttc_analytics'
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+analysis-paths: ["analyses"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Each layer lives in its own Snowflake schema. The custom
+# generate_schema_name macro under macros/ keeps these names verbatim
+# instead of dbt's default "<target_schema>_<custom_schema>" mangling.
+models:
+  ttc_analytics:
+    staging:
+      +materialized: view
+      +schema: STAGING
+    intermediate:
+      +materialized: view
+      +schema: INTERMEDIATE
+    marts:
+      +materialized: table
+      +schema: MARTS

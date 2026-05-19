@@ -1,0 +1,14 @@
+# Streamlit app theme. Pins dark mode + TTC red regardless of the viewer's
+# browser preference. Used by both local `streamlit run` and Streamlit Cloud.
+
+[theme]
+base                     = "dark"
+primaryColor             = "#DA291C"
+backgroundColor          = "#0e1117"
+secondaryBackgroundColor = "#1c1f26"
+textColor                = "#fafafa"
+font                     = "sans serif"
+
+[server]
+# Hide the "Made with Streamlit" footer when embedded.
+headless = true

@@ -1,10 +1,12 @@
 # TTC Transit Analytics Pipeline
 
+🚇 **[Live dashboard → ttc-transit-pipeline.streamlit.app](https://ttc-transit-pipeline.streamlit.app/)**
+
 End-to-end data engineering pipeline that ingests live Toronto TTC vehicle
 location data every 15 minutes, lands it in Snowflake, transforms it with dbt
-through staging / intermediate / mart layers, and serves a Streamlit dashboard
-that answers commuter-facing questions about route reliability and delay
-patterns.
+through staging / intermediate / mart layers, and serves a public Streamlit
+dashboard that answers commuter-facing questions about route reliability and
+delay patterns.
 
 **Built by [Riyasat Zaman](https://github.com/riyasatzaman).** Computing Science
 graduate (University of Alberta, June 2026), Statistics minor.
@@ -237,9 +239,11 @@ Three Streamlit pages reading from the `MARTS` schema:
 | Delay Heatmap | When during the week is a given route most stressed? | `mart_hourly_reliability` |
 | Best Time to Ride | When should I take a route for the smoothest experience? | `mart_hourly_reliability` |
 
-Local UI uses TTC red (`#DA291C`) as an accent. The Snowflake connector
-coerces `decimal.Decimal` columns to `float` on every fetch so pandas
-quantile/numpy operations work cleanly.
+Deployed publicly on **[Streamlit Community Cloud](https://ttc-transit-pipeline.streamlit.app/)**.
+Theme pinned to a dark base with TTC red (`#DA291C`) as the accent via
+`.streamlit/config.toml`. The Snowflake connector coerces `decimal.Decimal`
+columns to `float` on every fetch so pandas quantile / numpy operations
+work cleanly.
 
 > 📸 Screenshots: `docs/screenshots/` (add: landing, leaderboard, heatmap,
 > best-time-to-ride, Airflow Graph view, Snowflake query result).
@@ -373,9 +377,7 @@ In rough priority order:
    on every PR.
 5. **Observability** — Slack alerts on DAG failures, simple `dbt source
    freshness` check on `RAW.vehicle_positions`.
-6. **Dashboard deploy** — Streamlit Cloud (the public URL belongs here once
-   it's up).
-7. **Geospatial layer** — Mapbox / pydeck route map showing live vehicle
+6. **Geospatial layer** — Mapbox / pydeck route map showing live vehicle
    positions and slow segments.
 
 ---
@@ -393,9 +395,10 @@ In rough priority order:
   data-quality tests** (built-in `not_null` / `unique` / `relationships` plus
   custom singular tests for null route IDs, timezone-correct timestamps, and
   cross-mart `pct_on_time` range checks).
-- Implemented a Streamlit dashboard backed by Snowflake mart tables that
-  surfaces route reliability, delay heatmaps, and best-time-to-ride
-  recommendations for ~200 TTC routes.
+- Implemented and **publicly deployed** a Streamlit dashboard backed by
+  Snowflake mart tables that surfaces route reliability, delay heatmaps, and
+  best-time-to-ride recommendations for ~200 TTC routes
+  ([live demo](https://ttc-transit-pipeline.streamlit.app/)).
 
 ---
 

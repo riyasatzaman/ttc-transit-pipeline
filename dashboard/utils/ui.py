@@ -98,6 +98,7 @@ def inject_global_css() -> None:
             border-radius: 14px;
             padding: 0.85rem 0.5rem 0.5rem 0.5rem;
             margin-top: 0.25rem;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
         }}
 
         /* DataFrame */
@@ -176,7 +177,7 @@ def hero(title: str, subtitle: str, footnote: str = "") -> None:
             background: linear-gradient(135deg, {ELEVATED_BG} 0%, {CARD_BG} 100%);
             border: 1px solid {BORDER};
             border-radius: 18px;
-            padding: 1.85rem 2.1rem;
+            padding: 1.4rem 1.9rem;
             margin: 0.25rem 0 1.5rem 0;
             position: relative;
             overflow: hidden;
@@ -201,12 +202,14 @@ def hero(title: str, subtitle: str, footnote: str = "") -> None:
 
 # --- Page header for sub-pages --------------------------------------------
 def page_header(title: str, emoji: str, subtitle: str) -> None:
+    """Sub-page header. `emoji` is optional — pass "" for an emoji-free title."""
+    prefix = f"{emoji} " if emoji else ""
     st.markdown(
         f"""
         <div style='margin: 0.25rem 0 1.25rem 0;'>
             <div style='color: {TTC_RED}; font-size: 1.75rem; font-weight: 700;
                         letter-spacing: -0.02em; line-height: 1.15;'>
-                {emoji} {title}
+                {prefix}{title}
             </div>
             <div style='color: {TEXT_SECONDARY}; font-size: 1rem; margin-top: 0.45rem;
                         line-height: 1.55; max-width: 800px;'>
@@ -225,7 +228,9 @@ def kpi_card(label: str, value: str, sub: str = "", sub_color: str = "muted") ->
     sub_color: 'muted' (default), 'success' (green), 'danger' (red).
     """
     color_map = {
-        "muted":   TEXT_MUTED,
+        # Slightly brighter than TEXT_MUTED so the supporting line is readable
+        # against the dark card background — still muted, just not too dim.
+        "muted":   "#909AA8",
         "success": SUCCESS,
         "danger":  TTC_RED,
     }
@@ -328,6 +333,11 @@ def insight_box(html_text: str) -> None:
 
 # --- Page preview cards (homepage) -----------------------------------------
 def page_preview_card(emoji: str, title: str, body: str) -> str:
+    """Preview card. `emoji` is optional — pass "" for an emoji-free card."""
+    emoji_html = (
+        f"<span style='font-size: 1.15rem; margin-right: 0.4rem;'>{emoji}</span>"
+        if emoji else ""
+    )
     return f"""
     <div style='
         background-color: {CARD_BG};
@@ -338,7 +348,7 @@ def page_preview_card(emoji: str, title: str, body: str) -> str:
         min-height: 160px;
     '>
         <div style='color: {TEXT_PRIMARY}; font-weight: 600; font-size: 1.02rem;'>
-            <span style='font-size: 1.15rem; margin-right: 0.25rem;'>{emoji}</span>{title}
+            {emoji_html}{title}
         </div>
         <div style='color: {TEXT_SECONDARY}; font-size: 0.92rem; margin-top: 0.6rem;
                     line-height: 1.55;'>{body}</div>
@@ -347,9 +357,26 @@ def page_preview_card(emoji: str, title: str, body: str) -> str:
 
 
 # --- Architecture step + arrow --------------------------------------------
-def arch_step(emoji: str, label: str, sub: str = "") -> str:
+def arch_step(prefix: str, label: str, sub: str = "") -> str:
+    """Step card for the architecture flow.
+
+    `prefix` can be:
+      - "" — no prefix
+      - a 2-digit step number ("01"..."08") — rendered as a small TTC-red badge
+      - any other string (emoji etc.) — rendered as-is before the label
+    """
+    if not prefix:
+        prefix_html = ""
+    elif prefix.isdigit():
+        prefix_html = (
+            f"<span style='color:{TTC_RED};font-weight:700;font-size:0.78rem;"
+            f"letter-spacing:0.12em;margin-right:0.85rem;"
+            f"vertical-align:0.08em;'>{prefix}</span>"
+        )
+    else:
+        prefix_html = f"{prefix} "
     sub_html = (
-        f"<div style='color:{TEXT_MUTED};font-size:0.85rem;margin-top:0.3rem;"
+        f"<div style='color:#909AA8;font-size:0.85rem;margin-top:0.3rem;"
         f"word-break:keep-all;overflow-wrap:normal;'>{sub}</div>"
         if sub else ""
     )
@@ -359,7 +386,7 @@ def arch_step(emoji: str, label: str, sub: str = "") -> str:
                 padding:0.95rem 1.15rem;margin:0.4rem 0;'>
         <div style='color:{TEXT_PRIMARY};font-size:1rem;font-weight:600;
                     word-break:keep-all;overflow-wrap:normal;'>
-            {emoji} {label}
+            {prefix_html}{label}
         </div>{sub_html}</div>
     """
 
@@ -378,18 +405,23 @@ def arch_arrow(note: str = "") -> str:
 # --- Horizontal flow (homepage pipeline) ----------------------------------
 def horizontal_flow(steps: list[tuple[str, str, str]]) -> None:
     """Render a horizontal stack of card-steps separated by arrows.
-    Each step is (emoji, label, sub)."""
+    Each step is (emoji, label, sub). Pass "" for emoji to render an
+    emoji-free step (label-only)."""
     parts: list[str] = []
     for i, (emoji, label, sub) in enumerate(steps):
+        emoji_html = (
+            f"<div style='font-size:1.3rem;margin-bottom:0.35rem;'>{emoji}</div>"
+            if emoji else ""
+        )
         parts.append(
             f"<div style='flex:1 1 0;min-width:120px;background-color:{CARD_BG};"
-            f"border:1px solid {BORDER};border-radius:12px;padding:0.85rem 0.7rem;"
+            f"border:1px solid {BORDER};border-radius:12px;padding:1rem 0.8rem;"
             f"text-align:center;'>"
-            f"<div style='font-size:1.4rem;'>{emoji}</div>"
-            f"<div style='color:{TEXT_PRIMARY};font-weight:600;font-size:0.9rem;"
-            f"margin-top:0.3rem;'>{label}</div>"
-            f"<div style='color:{TEXT_MUTED};font-size:0.74rem;margin-top:0.2rem;'>"
-            f"{sub}</div></div>"
+            f"{emoji_html}"
+            f"<div style='color:{TEXT_PRIMARY};font-weight:600;font-size:0.95rem;'>"
+            f"{label}</div>"
+            f"<div style='color:#909AA8;font-size:0.76rem;margin-top:0.3rem;"
+            f"letter-spacing:0.02em;'>{sub}</div></div>"
         )
         if i < len(steps) - 1:
             parts.append(

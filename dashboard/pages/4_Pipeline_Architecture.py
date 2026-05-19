@@ -34,27 +34,29 @@ sidebar_branding()
 
 page_header(
     "Pipeline Architecture",
-    "⚙️",
+    "",
     "How live TTC vehicle data flows from the public feed to this dashboard.",
 )
 
 # --- 1. Vertical pipeline flow --------------------------------------------
+# Numbered steps (01–08) render as small TTC-red badges via arch_step's
+# digit-prefix branch — no emojis used.
 st.markdown(
-    arch_step("🌐", "Live TTC Vehicle Feed", "public UMOIQ API")
+    arch_step("01", "Live TTC Vehicle Feed", "public UMOIQ API")
     + arch_arrow("every 15 minutes")
-    + arch_step("🐍", "Python Ingestion Script")
+    + arch_step("02", "Python Ingestion Script")
     + arch_arrow()
-    + arch_step("📁", "Raw JSON files", "data/raw/")
+    + arch_step("03", "Raw JSON Files", "data/raw/")
     + arch_arrow()
-    + arch_step("✈️", "Apache Airflow DAG", "ttc_ingestion_dag")
+    + arch_step("04", "Apache Airflow DAG", "ttc_ingestion_dag")
     + arch_arrow()
-    + arch_step("❄️", "Snowflake — RAW schema", "vehicle_positions, routes")
+    + arch_step("05", "Snowflake RAW Schema", "vehicle_positions, routes")
     + arch_arrow()
-    + arch_step("🔧", "dbt — Staging → Intermediate → Marts")
+    + arch_step("06", "dbt Models", "staging → intermediate → marts")
     + arch_arrow()
-    + arch_step("❄️", "Snowflake — MARTS schema")
+    + arch_step("07", "Snowflake MARTS Schema")
     + arch_arrow()
-    + arch_step("📊", "Streamlit Dashboard", "this app"),
+    + arch_step("08", "Streamlit Dashboard", "this app"),
     unsafe_allow_html=True,
 )
 
@@ -63,7 +65,7 @@ st.markdown("### Stack")
 s1, s2, s3, s4 = st.columns(4)
 s1.markdown(
     page_preview_card(
-        "✈️", "Airflow",
+        "", "Airflow",
         "Orchestrates ingestion every 15 min and dbt hourly. Two DAGs: "
         "<code>ttc_ingestion_dag</code> and <code>ttc_dbt_dag</code>.",
     ),
@@ -71,7 +73,7 @@ s1.markdown(
 )
 s2.markdown(
     page_preview_card(
-        "❄️", "Snowflake",
+        "", "Snowflake",
         "Cloud warehouse. Four schemas: RAW · STAGING · INTERMEDIATE · MARTS. "
         "RAW is append-only.",
     ),
@@ -79,7 +81,7 @@ s2.markdown(
 )
 s3.markdown(
     page_preview_card(
-        "🔧", "dbt",
+        "", "dbt",
         "Six SQL models across staging, intermediate, and mart layers. "
         "Schema tested with 44 automated checks.",
     ),
@@ -87,7 +89,7 @@ s3.markdown(
 )
 s4.markdown(
     page_preview_card(
-        "📊", "Streamlit",
+        "", "Streamlit",
         "Three analytics pages reading from Snowflake MARTS. Deployed on "
         "Streamlit Community Cloud.",
     ),

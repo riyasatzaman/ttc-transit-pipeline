@@ -86,12 +86,12 @@ st.markdown(
 # --- Pipeline flow --------------------------------------------------------
 st.markdown("### The pipeline")
 horizontal_flow([
-    ("📡", "TTC Feed",        "live"),
-    ("✈️", "Airflow",         "every 15 min"),
-    ("❄️", "Snowflake RAW",   "append-only"),
-    ("🔧", "dbt Models",      "tested"),
-    ("❄️", "Snowflake MARTS", "dashboard-ready"),
-    ("📊", "Streamlit",       "this app"),
+    ("", "TTC Feed",        "live"),
+    ("", "Airflow",         "every 15 min"),
+    ("", "Snowflake RAW",   "append-only"),
+    ("", "dbt Models",      "tested"),
+    ("", "Snowflake MARTS", "dashboard-ready"),
+    ("", "Streamlit",       "this app"),
 ])
 
 # --- Page preview cards ---------------------------------------------------
@@ -99,7 +99,7 @@ st.markdown("### What's on each page")
 nav_col1, nav_col2, nav_col3 = st.columns(3)
 nav_col1.markdown(
     page_preview_card(
-        "🚌", "Route Reliability",
+        "", "Route Reliability",
         "Which TTC routes are reporting most consistently? Sortable "
         "leaderboard with green/yellow/red tiers.",
     ),
@@ -107,7 +107,7 @@ nav_col1.markdown(
 )
 nav_col2.markdown(
     page_preview_card(
-        "🔥", "Report Delay Heatmap",
+        "", "Report Delay Heatmap",
         "When are vehicle reports most delayed? A 24 × 7 heatmap shows "
         "report delay by hour and weekday.",
     ),
@@ -115,7 +115,7 @@ nav_col2.markdown(
 )
 nav_col3.markdown(
     page_preview_card(
-        "⏰", "Best Observed Windows",
+        "", "Best Observed Windows",
         "Which hours have the most up-to-date vehicle reports? Green bars "
         "highlight the best observed windows.",
     ),

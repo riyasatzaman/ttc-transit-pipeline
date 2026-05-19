@@ -43,7 +43,7 @@ sidebar_branding()
 
 page_header(
     "Best Observed Windows",
-    "⏰",
+    "",
     "Highlights the hours when vehicles on this route reported their "
     "locations most recently.",
 )
@@ -164,9 +164,9 @@ c3.markdown(kpi_card_custom("Best windows", best_label_pills), unsafe_allow_html
 
 if ranges:
     insight_box(
-        f"For <strong>{selected}</strong>, the most up-to-date vehicle "
-        f"reports happen during: <strong>{best_label}</strong>. "
-        f"Plan around these hours for the freshest live tracking."
+        f"These windows currently show the most up-to-date vehicle "
+        f"reporting for <strong>{selected}</strong>: "
+        f"<strong>{best_label}</strong>."
     )
 
 fig = px.bar(

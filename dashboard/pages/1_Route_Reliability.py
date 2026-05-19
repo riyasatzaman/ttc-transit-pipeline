@@ -32,7 +32,7 @@ sidebar_branding()
 
 page_header(
     "Route Reliability Leaderboard",
-    "🚌",
+    "",
     "Routes are sorted by highest report delay so inconsistent live "
     "reporting rises to the top.",
 )
@@ -134,6 +134,7 @@ styled = (
         }
     )
     .style
+    .hide(axis="index")
     .map(color_pct_on_time, subset=["Recently Reported %"])
     .format(
         {

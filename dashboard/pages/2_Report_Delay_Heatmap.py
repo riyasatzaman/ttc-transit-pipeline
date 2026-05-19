@@ -33,7 +33,7 @@ sidebar_branding()
 
 page_header(
     "Vehicle Report Delay Heatmap",
-    "🔥",
+    "",
     "Each cell shows the average delay in vehicle location reports for the "
     "selected route. Redder cells mean vehicles were reporting less recently.",
 )

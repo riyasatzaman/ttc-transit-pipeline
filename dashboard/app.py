@@ -74,7 +74,6 @@ st.markdown(
     f"color:#fafafa;font-size:0.95rem;'>"
     f"🟢 <strong>Pipeline live</strong> · "
     f"Last refresh: {refresh_str} · "
-    f"Ingestion every 15 min · Marts hourly · "
     f"44 checks passing"
     f"</div>",
     unsafe_allow_html=True,

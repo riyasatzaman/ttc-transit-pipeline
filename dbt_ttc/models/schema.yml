@@ -143,3 +143,51 @@ models:
           - not_null
       - name: pct_delayed
         description: "Percent of observations flagged as delayed (0-100)."
+
+  - name: mart_route_delay_summary
+    description: >
+      One row per route. Drives the dashboard's Route Reliability page.
+    columns:
+      - name: route_id
+        description: "TTC route number."
+        tests:
+          - not_null
+          - unique
+      - name: route_name
+        description: "Human-readable route name."
+        tests:
+          - not_null
+      - name: pct_on_time
+        description: "Percent of observations not flagged as delayed (0-100)."
+        tests:
+          - not_null
+      - name: total_observations
+        description: "Number of vehicle position observations behind this row."
+        tests:
+          - not_null
+      - name: last_updated_at
+        description: "When this mart was last (re)built."
+        tests:
+          - not_null
+
+  - name: mart_hourly_reliability
+    description: >
+      Route × direction × hour × day-of-week reliability. Drives the
+      Delay Heatmap and Best Time to Ride pages.
+    columns:
+      - name: route_id
+        description: "TTC route number."
+        tests:
+          - not_null
+      - name: hour_of_day
+        description: "0-23."
+        tests:
+          - not_null
+      - name: day_of_week
+        description: "0-6, Snowflake convention (0=Sunday)."
+        tests:
+          - not_null
+      - name: pct_on_time
+        description: "Percent of observations not flagged as delayed (0-100)."
+        tests:
+          - not_null

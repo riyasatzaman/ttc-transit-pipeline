@@ -1,4 +1,4 @@
-"""TTC Transit Analytics — landing page.
+"""TTC Transit Reliability Monitor — landing page.
 
 Streamlit auto-discovers pages from the `pages/` directory adjacent to this
 file, so navigation in the sidebar appears for free.
@@ -6,7 +6,18 @@ file, so navigation in the sidebar appears for free.
 import streamlit as st
 
 from utils.snowflake_connector import query_df
-from utils.ui import TTC_RED, footer, format_relative, sidebar_branding
+from utils.ui import (
+    footer,
+    format_relative,
+    hero,
+    horizontal_flow,
+    inject_global_css,
+    kpi_card,
+    page_preview_card,
+    pill,
+    pill_row,
+    sidebar_branding,
+)
 
 st.set_page_config(
     page_title="TTC Transit Reliability Monitor",
@@ -14,41 +25,20 @@ st.set_page_config(
     layout="wide",
 )
 
+inject_global_css()
 sidebar_branding()
 
-# TTC red accent on headings; subtle red glow on metric tiles.
-st.markdown(
-    f"""
-    <style>
-        h1 {{ color: {TTC_RED}; }}
-        div[data-testid="stMetric"] {{
-            background-color: rgba(218, 41, 28, 0.06);
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            border-left: 3px solid {TTC_RED};
-        }}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.markdown(f"<h1>🚇 TTC Transit Reliability Monitor</h1>", unsafe_allow_html=True)
-st.markdown(
-    "<p style='color: #bbb; font-size: 1.1rem;'>"
+# --- Hero -----------------------------------------------------------------
+hero(
+    "🚇 TTC Transit Reliability Monitor",
     "A live analytics dashboard tracking how recently TTC vehicles report "
-    "their locations across Toronto's transit network."
-    "</p>",
-    unsafe_allow_html=True,
-)
-st.markdown(
-    "<p style='color: #888; font-size: 0.95rem;'>"
-    "Powered by an Airflow → Snowflake → dbt → Streamlit pipeline ingesting "
-    "live TTC vehicle data every 15 minutes."
-    "</p>",
-    unsafe_allow_html=True,
+    "their locations across Toronto's transit network.",
+    "Powered by an Airflow → Snowflake → dbt → Streamlit pipeline that "
+    "ingests live TTC vehicle data every 15 minutes.",
 )
 
 
+# --- Data fetch -----------------------------------------------------------
 @st.cache_data(ttl=300)
 def get_summary():
     return query_df(
@@ -66,26 +56,26 @@ def get_summary():
 stats = get_summary().iloc[0]
 refresh_str = format_relative(stats["LAST_UPDATED_AT"])
 
-# Status strip: green pill summarizing pipeline health.
-st.markdown(
-    f"<div style='background-color:rgba(46,160,67,0.10);"
-    f"border:1px solid rgba(46,160,67,0.35);border-radius:8px;"
-    f"padding:0.55rem 1rem;margin:0.5rem 0 1.2rem 0;"
-    f"color:#fafafa;font-size:0.95rem;'>"
-    f"🟢 <strong>Pipeline live</strong> · "
-    f"Last refresh: {refresh_str} · "
-    f"44 checks passing"
-    f"</div>",
-    unsafe_allow_html=True,
-)
+# --- Status pills ---------------------------------------------------------
+pill_row([
+    pill("Pipeline live", variant="success"),
+    pill(f"Last refresh: {refresh_str}"),
+    pill("44 checks passing"),
+])
 
-col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric("Routes tracked",       f"{int(stats['ROUTE_COUNT']):,}")
-col2.metric("Vehicle observations", f"{int(stats['TOTAL_OBSERVATIONS']):,}")
-col3.metric("Distinct vehicles",    f"{int(stats['DISTINCT_VEHICLES']):,}")
-col4.metric("Automated checks",     "44", "38 dbt + 6 pytest", delta_color="off")
-col5.metric("Data refreshed",       refresh_str)
+# --- KPI row --------------------------------------------------------------
+kpis = [
+    ("Routes tracked",       f"{int(stats['ROUTE_COUNT']):,}",        "TTC routes observed"),
+    ("Vehicle observations", f"{int(stats['TOTAL_OBSERVATIONS']):,}", "live samples ingested"),
+    ("Distinct vehicles",    f"{int(stats['DISTINCT_VEHICLES']):,}",  "vehicles seen"),
+    ("Automated checks",     "44",                                    "38 dbt + 6 pytest"),
+    ("Data refreshed",       refresh_str,                             "auto every hour"),
+]
+cols = st.columns(5)
+for col, (label, value, sub) in zip(cols, kpis):
+    col.markdown(kpi_card(label, value, sub), unsafe_allow_html=True)
 
+# --- Why this matters -----------------------------------------------------
 st.markdown("### Why this matters")
 st.markdown(
     "Live transit feeds are noisy and difficult to interpret directly. "
@@ -93,33 +83,46 @@ st.markdown(
     "reliability metrics using a modern data engineering stack."
 )
 
+# --- Pipeline flow --------------------------------------------------------
 st.markdown("### The pipeline")
-st.markdown(
-    """
-| Layer | Tooling |
-|---|---|
-| **Ingestion** | Python + Apache Airflow — pulls live vehicle positions every 15 min |
-| **Warehouse** | Snowflake — raw / staging / intermediate / marts schemas |
-| **Transformation** | dbt — typed, tested SQL with lineage and CI-ready tests |
-| **Dashboard** | Streamlit — three pages reading from the mart tables |
-"""
-)
+horizontal_flow([
+    ("📡", "TTC Feed",        "live"),
+    ("✈️", "Airflow",         "every 15 min"),
+    ("❄️", "Snowflake RAW",   "append-only"),
+    ("🔧", "dbt Models",      "tested"),
+    ("❄️", "Snowflake MARTS", "dashboard-ready"),
+    ("📊", "Streamlit",       "this app"),
+])
 
+# --- Page preview cards ---------------------------------------------------
 st.markdown("### What's on each page")
 nav_col1, nav_col2, nav_col3 = st.columns(3)
 nav_col1.markdown(
-    "**🚌 Route Reliability**  \nWhich TTC routes are reporting most consistently? "
-    "Sortable leaderboard with green/yellow/red tiers."
+    page_preview_card(
+        "🚌", "Route Reliability",
+        "Which TTC routes are reporting most consistently? Sortable "
+        "leaderboard with green/yellow/red tiers.",
+    ),
+    unsafe_allow_html=True,
 )
 nav_col2.markdown(
-    "**🔥 Report Delay Heatmap**  \nWhen are vehicle reports most delayed? "
-    "A 24 × 7 heatmap shows report delay by hour and weekday."
+    page_preview_card(
+        "🔥", "Report Delay Heatmap",
+        "When are vehicle reports most delayed? A 24 × 7 heatmap shows "
+        "report delay by hour and weekday.",
+    ),
+    unsafe_allow_html=True,
 )
 nav_col3.markdown(
-    "**⏰ Best Observed Windows**  \nWhich hours have the most up-to-date vehicle "
-    "reports? Green bars highlight the best observed windows."
+    page_preview_card(
+        "⏰", "Best Observed Windows",
+        "Which hours have the most up-to-date vehicle reports? Green bars "
+        "highlight the best observed windows.",
+    ),
+    unsafe_allow_html=True,
 )
 
+# --- Methodology ----------------------------------------------------------
 with st.expander("How this metric is calculated"):
     st.markdown(
         "**Recently Reported %** is the share of vehicle observations where the "

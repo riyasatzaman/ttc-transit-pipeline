@@ -12,7 +12,14 @@ import pandas as pd
 import streamlit as st
 
 from utils.snowflake_connector import query_df
-from utils.ui import TTC_RED, footer, insight_box, page_header, sidebar_branding
+from utils.ui import (
+    footer,
+    inject_global_css,
+    insight_box,
+    kpi_card,
+    page_header,
+    sidebar_branding,
+)
 
 st.set_page_config(
     page_title="Route Reliability — TTC",
@@ -20,14 +27,8 @@ st.set_page_config(
     layout="wide",
 )
 
+inject_global_css()
 sidebar_branding()
-
-st.markdown(
-    f"<style>div[data-testid='stMetric'] {{"
-    f"background-color: rgba(218,41,28,0.06); padding: 0.75rem 1rem; "
-    f"border-radius: 8px; border-left: 3px solid {TTC_RED};}}</style>",
-    unsafe_allow_html=True,
-)
 
 page_header(
     "Route Reliability Leaderboard",
@@ -79,18 +80,25 @@ worst_row = df.iloc[0]
 avg_on_time = float(df["PCT_ON_TIME"].mean())
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Routes shown",         f"{len(df):,}")
-c2.metric("Avg recently reported", f"{avg_on_time:.2f}%")
-c3.metric(
-    "Most Recently Reported",
-    f"{best_row['ROUTE_ID']} · {best_row['ROUTE_NAME']}",
-    f"{best_row['PCT_ON_TIME']:.2f}%",
+c1.markdown(kpi_card("Routes shown",          f"{len(df):,}"),                unsafe_allow_html=True)
+c2.markdown(kpi_card("Avg recently reported", f"{avg_on_time:.2f}%"),         unsafe_allow_html=True)
+c3.markdown(
+    kpi_card(
+        "Most Recently Reported",
+        f"{best_row['ROUTE_ID']} · {best_row['ROUTE_NAME']}",
+        f"↑ {best_row['PCT_ON_TIME']:.2f}% recent",
+        sub_color="success",
+    ),
+    unsafe_allow_html=True,
 )
-c4.metric(
-    "Highest Report Delay",
-    f"{worst_row['ROUTE_ID']} · {worst_row['ROUTE_NAME']}",
-    f"{worst_row['PCT_ON_TIME']:.2f}%",
-    delta_color="inverse",
+c4.markdown(
+    kpi_card(
+        "Highest Report Delay",
+        f"{worst_row['ROUTE_ID']} · {worst_row['ROUTE_NAME']}",
+        f"avg {float(worst_row['AVG_DELAY_PROXY_SECONDS']):.1f}s",
+        sub_color="danger",
+    ),
+    unsafe_allow_html=True,
 )
 
 insight_box(

@@ -6,7 +6,22 @@ instantly and stays in sync with the README.
 """
 import streamlit as st
 
-from utils.ui import TTC_RED, footer, page_header, sidebar_branding
+from utils.ui import (
+    BORDER,
+    CARD_BG,
+    TEXT_MUTED,
+    TEXT_PRIMARY,
+    TEXT_SECONDARY,
+    TTC_RED,
+    arch_arrow,
+    arch_step,
+    footer,
+    inject_global_css,
+    kpi_card,
+    page_header,
+    page_preview_card,
+    sidebar_branding,
+)
 
 st.set_page_config(
     page_title="Pipeline Architecture — TTC",
@@ -14,15 +29,8 @@ st.set_page_config(
     layout="wide",
 )
 
+inject_global_css()
 sidebar_branding()
-
-# Metric-tile styling consistent with the other pages.
-st.markdown(
-    f"<style>div[data-testid='stMetric'] {{"
-    f"background-color: rgba(218,41,28,0.06); padding: 0.75rem 1rem; "
-    f"border-radius: 8px; border-left: 3px solid {TTC_RED};}}</style>",
-    unsafe_allow_html=True,
-)
 
 page_header(
     "Pipeline Architecture",
@@ -30,105 +38,94 @@ page_header(
     "How live TTC vehicle data flows from the public feed to this dashboard.",
 )
 
-
-# --- 1. Pipeline flow diagram --------------------------------------------------
-def _step(emoji: str, label: str, sub: str = "") -> str:
-    # word-break: keep-all + overflow-wrap: normal prevents narrow viewports
-    # from breaking "Script" into "Scri pt" or "JSON" into "JSO N".
-    sub_html = (
-        f"<div style='color:#888;font-size:0.85rem;margin-top:0.2rem;"
-        f"word-break:keep-all;overflow-wrap:normal;'>{sub}</div>"
-        if sub else ""
-    )
-    return (
-        f"<div style='background-color:rgba(218,41,28,0.06);"
-        f"border-left:3px solid {TTC_RED};border-radius:8px;"
-        f"padding:0.75rem 1rem;margin:0.4rem 0;'>"
-        f"<div style='color:#fafafa;font-size:1rem;font-weight:500;"
-        f"word-break:keep-all;overflow-wrap:normal;'>{emoji} {label}</div>"
-        f"{sub_html}</div>"
-    )
-
-
-def _arrow(note: str = "") -> str:
-    note_html = (
-        f"<span style='color:#888;font-size:0.85rem;margin-left:0.5rem;'>{note}</span>"
-        if note else ""
-    )
-    return (
-        f"<div style='text-align:center;color:{TTC_RED};font-size:1.5rem;"
-        f"line-height:1;margin:0.1rem 0;'>↓{note_html}</div>"
-    )
-
-
+# --- 1. Vertical pipeline flow --------------------------------------------
 st.markdown(
-    _step("🌐", "Live TTC Vehicle Feed", "public UMOIQ API")
-    + _arrow("every 15 minutes")
-    + _step("🐍", "Python Ingestion Script")
-    + _arrow()
-    + _step("📁", "Raw JSON files", "data/raw/")
-    + _arrow()
-    + _step("✈️", "Apache Airflow DAG", "ttc_ingestion_dag")
-    + _arrow()
-    + _step("❄️", "Snowflake — RAW schema", "vehicle_positions, routes")
-    + _arrow()
-    + _step("🔧", "dbt — Staging → Intermediate → Marts")
-    + _arrow()
-    + _step("❄️", "Snowflake — MARTS schema")
-    + _arrow()
-    + _step("📊", "Streamlit Dashboard", "this app"),
+    arch_step("🌐", "Live TTC Vehicle Feed", "public UMOIQ API")
+    + arch_arrow("every 15 minutes")
+    + arch_step("🐍", "Python Ingestion Script")
+    + arch_arrow()
+    + arch_step("📁", "Raw JSON files", "data/raw/")
+    + arch_arrow()
+    + arch_step("✈️", "Apache Airflow DAG", "ttc_ingestion_dag")
+    + arch_arrow()
+    + arch_step("❄️", "Snowflake — RAW schema", "vehicle_positions, routes")
+    + arch_arrow()
+    + arch_step("🔧", "dbt — Staging → Intermediate → Marts")
+    + arch_arrow()
+    + arch_step("❄️", "Snowflake — MARTS schema")
+    + arch_arrow()
+    + arch_step("📊", "Streamlit Dashboard", "this app"),
     unsafe_allow_html=True,
 )
 
-# --- 2. Stack cards ------------------------------------------------------------
+# --- 2. Stack cards -------------------------------------------------------
 st.markdown("### Stack")
 s1, s2, s3, s4 = st.columns(4)
 s1.markdown(
-    "**✈️ Airflow**  \nOrchestrates ingestion every 15 min and dbt hourly. "
-    "Two DAGs: `ttc_ingestion_dag` and `ttc_dbt_dag`."
+    page_preview_card(
+        "✈️", "Airflow",
+        "Orchestrates ingestion every 15 min and dbt hourly. Two DAGs: "
+        "<code>ttc_ingestion_dag</code> and <code>ttc_dbt_dag</code>.",
+    ),
+    unsafe_allow_html=True,
 )
 s2.markdown(
-    "**❄️ Snowflake**  \nCloud warehouse. Four schemas: RAW · STAGING · "
-    "INTERMEDIATE · MARTS. RAW is append-only."
+    page_preview_card(
+        "❄️", "Snowflake",
+        "Cloud warehouse. Four schemas: RAW · STAGING · INTERMEDIATE · MARTS. "
+        "RAW is append-only.",
+    ),
+    unsafe_allow_html=True,
 )
 s3.markdown(
-    "**🔧 dbt**  \nSix SQL models across staging, intermediate, and mart "
-    "layers. Schema tested with 44 automated checks."
+    page_preview_card(
+        "🔧", "dbt",
+        "Six SQL models across staging, intermediate, and mart layers. "
+        "Schema tested with 44 automated checks.",
+    ),
+    unsafe_allow_html=True,
 )
 s4.markdown(
-    "**📊 Streamlit**  \nThree analytics pages reading from Snowflake "
-    "MARTS. Deployed on Streamlit Community Cloud."
+    page_preview_card(
+        "📊", "Streamlit",
+        "Three analytics pages reading from Snowflake MARTS. Deployed on "
+        "Streamlit Community Cloud.",
+    ),
+    unsafe_allow_html=True,
 )
 
-# --- 3. Data quality summary ---------------------------------------------------
+# --- 3. By the numbers ----------------------------------------------------
 st.markdown("### By the numbers")
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Automated checks passing", "44", "38 dbt tests + 6 pytest checks", delta_color="off")
-m2.metric("Airflow DAGs",             "2")
-m3.metric("Snowflake schemas",        "4")
-m4.metric("dbt models",               "6")
+m1.markdown(
+    kpi_card("Automated checks passing", "44", "38 dbt tests + 6 pytest"),
+    unsafe_allow_html=True,
+)
+m2.markdown(kpi_card("Airflow DAGs",      "2", "ingestion + dbt build"),  unsafe_allow_html=True)
+m3.markdown(kpi_card("Snowflake schemas", "4", "RAW → STAGING → INT → MARTS"), unsafe_allow_html=True)
+m4.markdown(kpi_card("dbt models",        "6", "2 staging + 2 int + 2 marts"), unsafe_allow_html=True)
 
-# --- 4. Schema layers ----------------------------------------------------------
-st.markdown("### Snowflake schema layers")
 
-
+# --- 4. Snowflake schema layer cards --------------------------------------
 def _schema_card(name: str, kind: str, tables: list[str]) -> str:
     rows = "".join(
-        f"<div style='color:#fafafa;font-size:0.85rem;font-family:monospace;"
-        f"margin-top:0.2rem;'>{t}</div>"
+        f"<div style='color:{TEXT_PRIMARY};font-size:0.86rem;font-family:"
+        f"\"SF Mono\",Menlo,monospace;margin-top:0.25rem;letter-spacing:-0.01em;'>"
+        f"{t}</div>"
         for t in tables
     )
     return (
-        f"<div style='background-color:rgba(218,41,28,0.06);"
-        f"border-left:3px solid {TTC_RED};border-radius:8px;"
-        f"padding:0.75rem 1rem;height:100%;'>"
-        f"<div style='color:{TTC_RED};font-weight:600;font-size:1rem;'>{name}</div>"
-        f"<div style='color:#888;font-size:0.85rem;margin-top:0.1rem;'>{kind}</div>"
-        f"<div style='margin-top:0.5rem;'>{rows}</div>"
-        f"</div>"
+        f"<div style='background-color:{CARD_BG};border:1px solid {BORDER};"
+        f"border-radius:14px;padding:1rem 1.15rem;height:100%;min-height:130px;'>"
+        f"<div style='color:{TTC_RED};font-weight:700;font-size:0.95rem;"
+        f"letter-spacing:0.04em;'>{name}</div>"
+        f"<div style='color:{TEXT_MUTED};font-size:0.78rem;margin-top:0.15rem;"
+        f"text-transform:uppercase;letter-spacing:0.05em;'>{kind}</div>"
+        f"<div style='margin-top:0.6rem;'>{rows}</div></div>"
     )
 
 
+st.markdown("### Snowflake schema layers")
 sl1, sl2, sl3, sl4 = st.columns(4)
 sl1.markdown(
     _schema_card("RAW", "Source", ["vehicle_positions", "routes"]),
@@ -139,15 +136,17 @@ sl2.markdown(
     unsafe_allow_html=True,
 )
 sl3.markdown(
-    _schema_card("INTERMEDIATE", "dbt views", ["int_vehicle_delays", "int_route_performance"]),
+    _schema_card("INTERMEDIATE", "dbt views",
+                 ["int_vehicle_delays", "int_route_performance"]),
     unsafe_allow_html=True,
 )
 sl4.markdown(
-    _schema_card("MARTS", "dbt tables", ["mart_route_delay_summary", "mart_hourly_reliability"]),
+    _schema_card("MARTS", "dbt tables",
+                 ["mart_route_delay_summary", "mart_hourly_reliability"]),
     unsafe_allow_html=True,
 )
 
-# --- 5. Known limitations ------------------------------------------------------
+# --- 5. Known limitations -------------------------------------------------
 with st.expander("Known limitations & planned improvements"):
     st.markdown(
         """

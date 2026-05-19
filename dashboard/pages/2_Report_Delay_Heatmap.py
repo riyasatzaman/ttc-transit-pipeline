@@ -12,7 +12,15 @@ import plotly.express as px
 import streamlit as st
 
 from utils.snowflake_connector import query_df
-from utils.ui import TTC_RED, PLOTLY_TEMPLATE, footer, insight_box, page_header, sidebar_branding
+from utils.ui import (
+    PLOTLY_TEMPLATE,
+    footer,
+    inject_global_css,
+    insight_box,
+    kpi_card,
+    page_header,
+    sidebar_branding,
+)
 
 st.set_page_config(
     page_title="Report Delay Heatmap — TTC",
@@ -20,14 +28,8 @@ st.set_page_config(
     layout="wide",
 )
 
+inject_global_css()
 sidebar_branding()
-
-st.markdown(
-    f"<style>div[data-testid='stMetric'] {{"
-    f"background-color: rgba(218,41,28,0.06); padding: 0.75rem 1rem; "
-    f"border-radius: 8px; border-left: 3px solid {TTC_RED};}}</style>",
-    unsafe_allow_html=True,
-)
 
 page_header(
     "Vehicle Report Delay Heatmap",
@@ -121,23 +123,18 @@ worst_val = float(worst_cell['AVG_DELAY_S'])
 best_val  = float(best_cell['AVG_DELAY_S'])
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Observations", f"{total:,}")
-c2.metric(
-    "Highest report delay",
-    worst_label,
-    f"{worst_val:.1f}s",
-    delta_color="inverse",
+c1.markdown(kpi_card("Observations", f"{total:,}", "hour × day samples"), unsafe_allow_html=True)
+c2.markdown(
+    kpi_card("Highest report delay", worst_label, f"avg {worst_val:.1f}s", sub_color="danger"),
+    unsafe_allow_html=True,
 )
-c3.metric(
-    "Lowest report delay",
-    best_label_hm,
-    f"{best_val:.1f}s",
+c3.markdown(
+    kpi_card("Lowest report delay", best_label_hm, f"avg {best_val:.1f}s", sub_color="success"),
+    unsafe_allow_html=True,
 )
-c4.metric(
-    "Coverage",
-    f"{hours_observed} / 168",
-    f"{coverage_pct:.1f}% of all hour × day cells",
-    delta_color="off",
+c4.markdown(
+    kpi_card("Coverage", f"{hours_observed} / 168", f"{coverage_pct:.1f}% of all cells observed"),
+    unsafe_allow_html=True,
 )
 
 insight_box(

@@ -15,7 +15,22 @@ import plotly.express as px
 import streamlit as st
 
 from utils.snowflake_connector import query_df
-from utils.ui import TTC_RED, PLOTLY_TEMPLATE, footer, insight_box, page_header, sidebar_branding
+from utils.ui import (
+    PLOTLY_TEMPLATE,
+    SUCCESS,
+    SUCCESS_BG,
+    SUCCESS_BORDER,
+    TEXT_PRIMARY,
+    TTC_RED,
+    footer,
+    inject_global_css,
+    insight_box,
+    kpi_card,
+    kpi_card_custom,
+    page_header,
+    pill,
+    sidebar_branding,
+)
 
 st.set_page_config(
     page_title="Best Observed Windows — TTC",
@@ -23,14 +38,8 @@ st.set_page_config(
     layout="wide",
 )
 
+inject_global_css()
 sidebar_branding()
-
-st.markdown(
-    f"<style>div[data-testid='stMetric'] {{"
-    f"background-color: rgba(218,41,28,0.06); padding: 0.75rem 1rem; "
-    f"border-radius: 8px; border-left: 3px solid {TTC_RED};}}</style>",
-    unsafe_allow_html=True,
-)
 
 page_header(
     "Best Observed Windows",
@@ -137,50 +146,21 @@ best_label = (
     else "—"
 )
 # Same windows but rendered as inline pill badges for the KPI tile.
-_PILL_STYLE = (
-    "display:inline-block;padding:0.25rem 0.7rem;"
-    "margin:0.2rem 0.3rem 0.2rem 0;border-radius:999px;"
-    "background-color:rgba(218,41,28,0.14);color:#fafafa;"
-    f"border:1px solid {TTC_RED};font-size:0.95rem;"
-    "white-space:nowrap;line-height:1.4;"
-)
+# Green-tinted to signal "best / good" (not red, which would be conflicting).
 best_label_pills = (
     "".join(
-        f"<span style='{_PILL_STYLE}'>"
-        f"{_format_hour(a)}–{_format_hour((b + 1) % 24)}"
-        f"</span>"
+        pill(f"{_format_hour(a)}–{_format_hour((b + 1) % 24)}", variant="success")
         for a, b in ranges
     )
     if ranges
-    else "<span style='color:#888;'>—</span>"
+    else "<span style='color:#737B88;'>—</span>"
 )
 
 c1, c2, c3 = st.columns([1, 1, 2])
-c1.metric("Observations",   f"{total_obs:,}")
-c2.metric("Hours observed", f"{hours_observed} / 24")
-
-# c3 uses a custom HTML block instead of st.metric so the time-range list
-# can wrap. st.metric forces white-space:nowrap on the value, which
-# truncates "12am-1am · 2am-3am · 5pm-6pm · ..." with an ellipsis.
-c3.markdown(
-    f"""
-    <div style="
-        background-color: rgba(218,41,28,0.06);
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        border-left: 3px solid {TTC_RED};
-        min-height: 6.5rem;
-    ">
-        <div style="color: rgba(250,250,250,0.6); font-size: 0.875rem;">
-            Best windows
-        </div>
-        <div style="margin-top: 0.35rem; line-height: 1.4;">
-            {best_label_pills}
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+c1.markdown(kpi_card("Observations",   f"{total_obs:,}",          "vehicle samples"), unsafe_allow_html=True)
+c2.markdown(kpi_card("Hours observed", f"{hours_observed} / 24",  "hour coverage"),   unsafe_allow_html=True)
+# c3 uses kpi_card_custom because the value is a row of pill badges, not text.
+c3.markdown(kpi_card_custom("Best windows", best_label_pills), unsafe_allow_html=True)
 
 if ranges:
     insight_box(

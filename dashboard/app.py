@@ -6,6 +6,7 @@ file, so navigation in the sidebar appears for free.
 import streamlit as st
 
 from utils.snowflake_connector import query_df
+from utils.ui import TTC_RED, footer, format_relative
 
 st.set_page_config(
     page_title="TTC Transit Analytics",
@@ -13,35 +14,28 @@ st.set_page_config(
     layout="wide",
 )
 
-# TTC red accent on headings only — keep the rest of the theme default.
+# TTC red accent on headings; subtle red glow on metric tiles.
 st.markdown(
-    """
+    f"""
     <style>
-        h1 { color: #DA291C; }
-        .stMetric { background-color: rgba(218, 41, 28, 0.04); padding: 0.5rem 1rem; border-radius: 6px; }
+        h1 {{ color: {TTC_RED}; }}
+        div[data-testid="stMetric"] {{
+            background-color: rgba(218, 41, 28, 0.06);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border-left: 3px solid {TTC_RED};
+        }}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-st.title("TTC Transit Analytics Pipeline")
-
+st.markdown(f"<h1>🚇 TTC Transit Analytics</h1>", unsafe_allow_html=True)
 st.markdown(
-    """
-    Live route reliability and delay analytics for the Toronto Transit Commission.
-
-    This dashboard is powered by a production-style data pipeline:
-    - **Ingestion**: Python + Apache Airflow pulls live vehicle positions from
-      the TTC every 15 minutes
-    - **Warehouse**: Snowflake holds raw and modeled data
-    - **Transformation**: dbt builds staging, intermediate, and mart layers
-    - **Dashboard**: Streamlit reads the mart tables
-
-    Use the sidebar to navigate:
-    - **Route Reliability** — which TTC routes are most/least on time?
-    - **Delay Heatmap** — when during the week are delays worst?
-    - **Best Time to Ride** — when should you take a specific route?
-    """
+    "<p style='color: #bbb; font-size: 1.1rem;'>"
+    "Live route reliability and delay analytics for the Toronto Transit Commission."
+    "</p>",
+    unsafe_allow_html=True,
 )
 
 
@@ -59,20 +53,39 @@ def get_summary():
     )
 
 
-stats = get_summary()
-row = stats.iloc[0]
+stats = get_summary().iloc[0]
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Routes tracked",       f"{int(row['ROUTE_COUNT']):,}")
-col2.metric("Vehicle observations", f"{int(row['TOTAL_OBSERVATIONS']):,}")
-col3.metric("Distinct vehicles",    f"{int(row['DISTINCT_VEHICLES']):,}")
-col4.metric(
-    "Data last refreshed",
-    row["LAST_UPDATED_AT"].strftime("%Y-%m-%d %H:%M"),
+col1.metric("Routes tracked",       f"{int(stats['ROUTE_COUNT']):,}")
+col2.metric("Vehicle observations", f"{int(stats['TOTAL_OBSERVATIONS']):,}")
+col3.metric("Distinct vehicles",    f"{int(stats['DISTINCT_VEHICLES']):,}")
+col4.metric("Data refreshed",       format_relative(stats["LAST_UPDATED_AT"]))
+
+st.markdown("### The pipeline")
+st.markdown(
+    """
+| Layer | Tooling |
+|---|---|
+| **Ingestion** | Python + Apache Airflow — pulls live vehicle positions every 15 min |
+| **Warehouse** | Snowflake — raw / staging / intermediate / marts schemas |
+| **Transformation** | dbt — typed, tested SQL with lineage and CI-ready tests |
+| **Dashboard** | Streamlit — three pages reading from the mart tables |
+"""
 )
 
-st.markdown("---")
-st.caption(
-    "Built by Riyasat Zaman. "
-    "[Source on GitHub](https://github.com/riyasatzaman/ttc-transit-pipeline)"
+st.markdown("### What's on each page")
+nav_col1, nav_col2, nav_col3 = st.columns(3)
+nav_col1.markdown(
+    "**🚌 Route Reliability**  \nWhich TTC routes are most/least on time? "
+    "Sortable leaderboard with green/yellow/red tiers."
 )
+nav_col2.markdown(
+    "**🔥 Delay Heatmap**  \nWhen during the week is a given route most stressed? "
+    "24 × 7 grid with redder = less responsive reporting."
+)
+nav_col3.markdown(
+    "**⏰ Best Time to Ride**  \nWhen should you take a route for the smoothest "
+    "experience? Hourly bar chart with the best windows highlighted."
+)
+
+footer()

@@ -6,16 +6,16 @@ Reads from MARTS.mart_hourly_reliability, collapses to per-hour averages
 (across all days of the week), and highlights the bottom-25% "delay"
 windows in green.
 
-We use `avg_secs_since_report` rather than `avg_delay_proxy_seconds` as
-the primary signal. `delay_proxy_seconds` is `max(0, secs_since_report -
-120)`, which floors at zero — for busy routes like the 504 King
-streetcar it's ~0 for every hour, so the chart would be empty. The raw
-`secs_since_report` has organic hourly variation on every route.
+Uses `avg_secs_since_report` rather than `avg_delay_proxy_seconds` —
+the delay proxy is floored at zero for busy routes, while the raw
+secs_since_report has organic hourly variation everywhere.
 """
+import pandas as pd
 import plotly.express as px
 import streamlit as st
 
 from utils.snowflake_connector import query_df
+from utils.ui import TTC_RED, PLOTLY_TEMPLATE, footer, page_header
 
 st.set_page_config(
     page_title="Best Time to Ride — TTC",
@@ -23,17 +23,23 @@ st.set_page_config(
     layout="wide",
 )
 
-st.markdown("<style>h1 { color: #DA291C; }</style>", unsafe_allow_html=True)
-st.title("⏰ Best Time to Ride")
 st.markdown(
-    "When should you take a route for the smoothest experience? "
+    f"<style>div[data-testid='stMetric'] {{"
+    f"background-color: rgba(218,41,28,0.06); padding: 0.75rem 1rem; "
+    f"border-radius: 8px; border-left: 3px solid {TTC_RED};}}</style>",
+    unsafe_allow_html=True,
+)
+
+page_header(
+    "Best Time to Ride",
+    "⏰",
     "Green bars mark the 25% of hours with the lowest reporting friction "
-    "for the selected route (proxy for less congestion / better service)."
+    "for the selected route (proxy for less congestion / denser service).",
 )
 
 
 @st.cache_data(ttl=300)
-def get_route_options():
+def get_route_options() -> pd.DataFrame:
     return query_df(
         """
         select
@@ -48,7 +54,7 @@ def get_route_options():
 
 
 @st.cache_data(ttl=300)
-def get_hourly(route_id: str):
+def get_hourly(route_id: str) -> pd.DataFrame:
     return query_df(
         f"""
         select
@@ -99,53 +105,73 @@ selected = st.selectbox(
 )
 route_id = options[selected]
 
-df = get_hourly(route_id)
+df_raw = get_hourly(route_id)
 
-if df.empty:
+if df_raw.empty:
     st.warning(f"No data for route {route_id} yet.")
+    footer()
     st.stop()
 
-# Mark the best (lowest-delay) hours: bottom 25th percentile.
-threshold = df["AVG_DELAY_S"].quantile(0.25)
-df["is_best"] = df["AVG_DELAY_S"] <= threshold
+# Pad to all 24 hours so the chart always shows a full day. Hours we
+# haven't observed get NaN (= no bar) instead of disappearing.
+all_hours = pd.DataFrame({"HOUR_OF_DAY": range(24)})
+df = all_hours.merge(df_raw, on="HOUR_OF_DAY", how="left")
 df["hour_label"] = df["HOUR_OF_DAY"].apply(_format_hour)
+
+observed = df.dropna(subset=["AVG_DELAY_S"]).copy()
+threshold = float(observed["AVG_DELAY_S"].quantile(0.25))
+df["is_best"] = (df["AVG_DELAY_S"].notna()) & (df["AVG_DELAY_S"] <= threshold)
+
+# KPI tiles.
+total_obs = int(observed["TOTAL_OBS"].sum())
+hours_observed = int(observed.shape[0])
+best_hours = sorted(df.loc[df["is_best"], "HOUR_OF_DAY"].astype(int).tolist())
+ranges = _consecutive_ranges(best_hours)
+best_label = (
+    " · ".join(
+        f"{_format_hour(a)}–{_format_hour((b + 1) % 24)}" for a, b in ranges
+    )
+    if ranges
+    else "—"
+)
+
+c1, c2, c3 = st.columns(3)
+c1.metric("Observations",   f"{total_obs:,}")
+c2.metric("Hours observed", f"{hours_observed} / 24")
+c3.metric("Best windows",   best_label)
 
 fig = px.bar(
     df,
     x="HOUR_OF_DAY",
     y="AVG_DELAY_S",
     color="is_best",
-    color_discrete_map={True: "#1e7e34", False: "#DA291C"},
+    color_discrete_map={True: "#1e7e34", False: TTC_RED},
     labels={
         "HOUR_OF_DAY":  "Hour of day",
         "AVG_DELAY_S":  "Avg seconds since last vehicle report",
         "is_best":      "Best window",
     },
     hover_data={"HOUR_OF_DAY": False, "hour_label": True, "TOTAL_OBS": True},
+    template=PLOTLY_TEMPLATE,
 )
 fig.update_xaxes(
     tickmode="array",
     tickvals=list(range(24)),
     ticktext=[_format_hour(h) for h in range(24)],
 )
-fig.update_layout(showlegend=False, height=420, margin=dict(l=40, r=40, t=20, b=40))
+fig.update_layout(
+    showlegend=False,
+    height=420,
+    margin=dict(l=40, r=40, t=10, b=40),
+)
 st.plotly_chart(fig, use_container_width=True)
 
-best_hours = sorted(df.loc[df["is_best"], "HOUR_OF_DAY"].astype(int).tolist())
-ranges = _consecutive_ranges(best_hours)
-if ranges:
-    # Wrap the end hour with mod 24 so a range ending at midnight renders
-    # as "12am" (next day) instead of falling into the >12 pm branch.
-    range_strs = [
-        f"{_format_hour(a)}–{_format_hour((b + 1) % 24)}" for a, b in ranges
-    ]
-    st.success(
-        f"**Best windows to ride this route:** {' and '.join(range_strs)}"
-    )
-
 st.caption(
-    f"Metric: average seconds since each vehicle last pinged the feed "
-    f"(threshold ≤ {threshold:.1f}s). Lower values mean more responsive "
+    f"Threshold: avg delay ≤ {threshold:.1f}s (the 25th percentile of "
+    "observed hours for this route). Lower values mean more responsive "
     "reporting — usually a sign of denser service and less friction. "
-    "Hover any bar for hourly sample size."
+    "Hover any bar for the hourly sample size; gaps are hours the ingestion "
+    "DAG hasn't observed yet."
 )
+
+footer()

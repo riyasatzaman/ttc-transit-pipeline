@@ -4,14 +4,15 @@ Answers: which TTC routes are most and least reliable right now?
 
 Reads from MARTS.mart_route_delay_summary. Colors pct_on_time using the
 spec's tiers (>80 green, 60-80 yellow, <60 red). In practice most routes
-sit well above 95% because our delay proxy only fires on truly stale
-reports — the more discriminating signal is `avg_delay_proxy_seconds`,
-which we expose as a secondary column.
+sit above 95% because our delay proxy only fires on truly stale reports —
+the more discriminating signal is `avg_delay_proxy_seconds`, which we
+surface as a column.
 """
 import pandas as pd
 import streamlit as st
 
 from utils.snowflake_connector import query_df
+from utils.ui import TTC_RED, footer, page_header
 
 st.set_page_config(
     page_title="Route Reliability — TTC",
@@ -19,14 +20,19 @@ st.set_page_config(
     layout="wide",
 )
 
-st.markdown("<style>h1 { color: #DA291C; }</style>", unsafe_allow_html=True)
-st.title("🚌 Route Reliability Leaderboard")
 st.markdown(
-    "Which TTC routes are most and least reliable right now? "
-    "Sorted worst-first so the routes needing attention rise to the top."
+    f"<style>div[data-testid='stMetric'] {{"
+    f"background-color: rgba(218,41,28,0.06); padding: 0.75rem 1rem; "
+    f"border-radius: 8px; border-left: 3px solid {TTC_RED};}}</style>",
+    unsafe_allow_html=True,
 )
 
-# Filter: hide routes with tiny samples that aren't meaningful yet.
+page_header(
+    "Route Reliability Leaderboard",
+    "🚌",
+    "Sorted worst-first so the routes needing attention rise to the top.",
+)
+
 min_obs = st.slider(
     "Minimum observations (filter out routes with sparse data)",
     min_value=0, max_value=1000, value=100, step=50,
@@ -61,10 +67,30 @@ if df.empty:
         f"No routes have ≥ {min_obs} observations yet. "
         "Wait for more data or lower the threshold."
     )
+    footer()
     st.stop()
 
-# Color tiers per spec. With current data most routes are green; that's
-# honest — the TTC's reporting is pretty reliable.
+# KPI tiles up top.
+best_row = df.iloc[-1]      # df is sorted ascending by pct_on_time
+worst_row = df.iloc[0]
+avg_on_time = float(df["PCT_ON_TIME"].mean())
+
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("Routes shown", f"{len(df):,}")
+c2.metric("Avg on-time",  f"{avg_on_time:.2f}%")
+c3.metric(
+    "Most reliable",
+    f"{best_row['ROUTE_ID']} · {best_row['ROUTE_NAME']}",
+    f"{best_row['PCT_ON_TIME']:.2f}%",
+)
+c4.metric(
+    "Least reliable",
+    f"{worst_row['ROUTE_ID']} · {worst_row['ROUTE_NAME']}",
+    f"{worst_row['PCT_ON_TIME']:.2f}%",
+    delta_color="inverse",
+)
+
+
 def color_pct_on_time(val: float) -> str:
     if val >= 80:
         return "background-color: #1e7e34; color: white;"
@@ -102,8 +128,12 @@ styled = (
     )
 )
 
-st.dataframe(styled, use_container_width=True, height=600)
+st.dataframe(styled, use_container_width=True, height=520)
 st.caption(
-    f"Showing {len(df)} routes with ≥ {min_obs:,} observations. "
-    "Data refreshed by Airflow every hour."
+    f"Showing {len(df):,} routes with ≥ {min_obs:,} observations. "
+    "**On-time %** = share of observations where the vehicle pinged the "
+    "feed within the last 2 minutes (proxy for the vehicle being live and "
+    "not stuck offline). **Avg delay** is `max(0, secs_since_report - 120)`."
 )
+
+footer()

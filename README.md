@@ -1,15 +1,28 @@
-# TTC Transit Analytics Pipeline
+# TTC Transit Reliability Monitor
 
 🚇 **[Live dashboard → ttc-transit-pipeline.streamlit.app](https://ttc-transit-pipeline.streamlit.app/)**
 
-End-to-end data engineering pipeline that ingests live Toronto TTC vehicle
+End-to-end data engineering project that ingests live Toronto TTC vehicle
 location data every 15 minutes, lands it in Snowflake, transforms it with dbt
-through staging / intermediate / mart layers, and serves a public Streamlit
-dashboard that answers commuter-facing questions about route reliability and
-delay patterns.
+through staging/intermediate/mart layers, and serves a public Streamlit
+dashboard tracking route reporting reliability, recently reported vehicles,
+and average report delay.
 
 **Built by [Riyasat Zaman](https://github.com/riyasatzaman).** Computing Science
 graduate (University of Alberta, June 2026), Statistics minor.
+
+![TTC Transit Reliability Monitor dashboard](docs/screenshots/overview.jpeg)
+
+---
+
+## Current Results
+
+- Routes tracked: **218+**
+- Vehicle observations: **73,924+**
+- Distinct vehicles: **3,235+**
+- Automated checks: **44 passing**
+- Refresh cadence: **ingestion every 15 minutes, marts hourly**
+- Public dashboard: Streamlit Community Cloud
 
 ---
 
@@ -21,9 +34,9 @@ flowchart LR
     B --> C[Raw JSON snapshots<br/>data/raw/*.json]:::file
     B --> D[(Snowflake RAW<br/>vehicle_positions, routes)]:::snowflake
     D --> E[(STAGING<br/>typed, deduped views)]:::snowflake
-    E --> F[(INTERMEDIATE<br/>delay metrics, route perf)]:::snowflake
+    E --> F[(INTERMEDIATE<br/>report delay metrics, route perf)]:::snowflake
     F --> G[(MARTS<br/>dashboard tables)]:::snowflake
-    G --> H[Streamlit dashboard<br/>3 pages]:::dashboard
+    G --> H[Streamlit dashboard<br/>4 pages]:::dashboard
 
     I[Airflow<br/>Docker Compose]:::airflow -.->|every 15 min| B
     I -.->|hourly| J[dbt build<br/>run + test]:::dbt
@@ -48,7 +61,7 @@ flowchart LR
 |---|---|
 | Language | Python 3.11 (Airflow container) / 3.12 (local dev) |
 | Ingestion | `requests`, `pandas`, `snowflake-connector-python` |
-| Raw storage | Parquet/JSON files in `data/raw/`, then Snowflake `RAW` schema |
+| Raw storage | JSON files in `data/raw/`, then Snowflake `RAW` schema |
 | Orchestration | Apache Airflow 2.8 (LocalExecutor) on Docker Compose |
 | Warehouse | Snowflake — `TTC_ANALYTICS` database, four schemas |
 | Transformation | `dbt-core` 1.7 + `dbt-snowflake` |
@@ -111,11 +124,12 @@ ttc-transit-pipeline/
 │   ├── app.py                     # Landing page
 │   ├── pages/
 │   │   ├── 1_Route_Reliability.py
-│   │   ├── 2_Delay_Heatmap.py
-│   │   └── 3_Best_Time_to_Ride.py
+│   │   ├── 2_Report_Delay_Heatmap.py
+│   │   ├── 3_Best_Observed_Windows.py
+│   │   └── 4_Pipeline_Architecture.py
 │   ├── utils/
 │   │   ├── snowflake_connector.py # Cached connection + Decimal->float coerce
-│   │   └── ui.py                  # Shared page header, footer, time helpers
+│   │   └── ui.py                  # Shared theme, hero, KPI cards, pills, footer
 │   └── requirements.txt
 ├── tests/
 │   └── test_ingestion.py          # 6 pytest cases on the parser
@@ -173,6 +187,15 @@ failures show up at the layer they happen at, not in a single monolithic
 
 ## dbt models
 
+User-facing metric names follow the dashboard's terminology; the underlying
+columns keep their original technical names so the SQL stays self-documenting.
+
+| Technical column | User-facing label | Meaning |
+|---|---|---|
+| `pct_on_time` | **Recently Reported %** | Share of observations where a vehicle reported within the last 2 minutes. |
+| `pct_delayed` | **Stale Reports %** | Inverse of the above — share of observations beyond the 2-minute window. |
+| `delay_proxy_seconds` | **Avg Report Delay** | Extra seconds beyond the 2-minute recent-reporting window. |
+
 ### Staging (`STAGING` schema, views)
 
 - **`stg_vehicle_positions`** — casts types, drops rows missing required keys,
@@ -185,17 +208,18 @@ failures show up at the layer they happen at, not in a single monolithic
 
 - **`int_vehicle_delays`** — per-observation enrichment: route name joined
   from `stg_routes`, hour / day-of-week derived from `recorded_at`, per-vehicle
-  LAG signal, plus a `secs_since_report`-based `is_delayed` boolean and
-  continuous `delay_proxy_seconds` (`max(0, secs_since_report - 120)`).
+  LAG signal, plus a `secs_since_report`-based `is_delayed` boolean and the
+  continuous `delay_proxy_seconds` field (`max(0, secs_since_report - 120)`).
 - **`int_route_performance`** — aggregates `int_vehicle_delays` to
   route × direction × hour × day-of-week with `total_observations`,
-  `pct_on_time`, `pct_delayed`, and average speed / delay metrics.
+  `pct_on_time`, `pct_delayed`, and average speed / report-delay metrics.
 
 ### Marts (`MARTS` schema, tables)
 
-- **`mart_route_delay_summary`** — one row per route. Drives the leaderboard.
+- **`mart_route_delay_summary`** — one row per route. Drives the Route
+  Reliability leaderboard.
 - **`mart_hourly_reliability`** — route × hour × day-of-week. Drives the
-  heatmap and best-time-to-ride pages.
+  Vehicle Report Delay Heatmap and Best Observed Windows pages.
 - **`mart_worst_stops`** — *intentionally disabled.* Requires static GTFS
   stops / trips / stop_times we haven't ingested. The file is kept as a
   documented stub rather than silently dropped — see *Future improvements*.
@@ -231,13 +255,15 @@ timestamp math).
 
 ## Dashboard
 
-Three Streamlit pages reading from the `MARTS` schema:
+Four Streamlit pages, all reading from the `MARTS` schema except the static
+Pipeline Architecture page:
 
-| Page | Question answered | Source mart |
-|---|---|---|
-| Route Reliability | Which routes are most/least on time? | `mart_route_delay_summary` |
-| Delay Heatmap | When during the week is a given route most stressed? | `mart_hourly_reliability` |
-| Best Time to Ride | When should I take a route for the smoothest experience? | `mart_hourly_reliability` |
+| Page | Question answered |
+|---|---|
+| **Route Reliability** | Which routes are reporting most consistently? |
+| **Vehicle Report Delay Heatmap** | When are vehicle reports most delayed by hour and weekday? |
+| **Best Observed Windows** | Which hours show the most up-to-date vehicle reporting? |
+| **Pipeline Architecture** | How live TTC vehicle data flows through Airflow, Snowflake, dbt, and Streamlit. |
 
 Deployed publicly on **[Streamlit Community Cloud](https://ttc-transit-pipeline.streamlit.app/)**.
 Theme pinned to a dark base with TTC red (`#DA291C`) as the accent via
@@ -245,8 +271,7 @@ Theme pinned to a dark base with TTC red (`#DA291C`) as the accent via
 columns to `float` on every fetch so pandas quantile / numpy operations
 work cleanly.
 
-> 📸 Screenshots: `docs/screenshots/` (add: landing, leaderboard, heatmap,
-> best-time-to-ride, Airflow Graph view, Snowflake query result).
+Dashboard screenshot: `docs/screenshots/overview.jpeg`
 
 ---
 
@@ -342,21 +367,22 @@ the variables; the real `.env` is gitignored.
 
 ## Known limitations
 
-- **Headway approximation**, not true schedule adherence. The UMOIQ vehicle
-  location feed gives positions, not stop arrivals. Computing real
-  schedule-vs-actual deltas would require ingesting static GTFS
+- **Live vehicle reporting reliability, not official TTC schedule adherence.**
+  The UMOIQ vehicle location feed gives positions and a per-vehicle "seconds
+  since last report" value — not stop arrivals against a published schedule.
+  Computing real schedule-vs-actual deltas would require ingesting static GTFS
   (`stops`, `trips`, `stop_times`, `calendar`) and doing a spatial join from
   vehicle positions to nearest stop. `mart_worst_stops` is left as a
   documented stub so the intent is visible.
-- **Delay metric is a proxy.** `is_delayed = secs_since_report > 120` flags
-  vehicles offline / not pinging the feed for more than 2 minutes. For busy
-  routes this is rare, which is why the dashboard's Delay Heatmap and
-  Best Time to Ride pages use the more variable `avg_secs_since_report`
+- **Report-delay metric is a proxy.** `is_delayed = secs_since_report > 120`
+  flags vehicles offline / not pinging the feed for more than 2 minutes. For
+  busy routes this is rare, which is why the Vehicle Report Delay Heatmap and
+  Best Observed Windows pages use the more variable `avg_secs_since_report`
   rather than the floored `avg_delay_proxy_seconds`.
 - **Airflow is local-only.** A real deployment would use Astronomer, MWAA, or
   Cloud Composer plus secrets management instead of a `.env` file.
 - **No incremental dbt.** Marts are full-rebuild every hour. Fine at this
-  scale (~50k rows/day) but the obvious next optimization.
+  scale but the obvious next optimization.
 - **No backfill of historical data.** The pipeline only knows about what it
   has ingested since the first DAG run.
 

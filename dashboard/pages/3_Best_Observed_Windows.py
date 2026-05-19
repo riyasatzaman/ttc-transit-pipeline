@@ -136,6 +136,24 @@ best_label = (
     if ranges
     else "—"
 )
+# Same windows but rendered as inline pill badges for the KPI tile.
+_PILL_STYLE = (
+    "display:inline-block;padding:0.25rem 0.7rem;"
+    "margin:0.2rem 0.3rem 0.2rem 0;border-radius:999px;"
+    "background-color:rgba(218,41,28,0.14);color:#fafafa;"
+    f"border:1px solid {TTC_RED};font-size:0.95rem;"
+    "white-space:nowrap;line-height:1.4;"
+)
+best_label_pills = (
+    "".join(
+        f"<span style='{_PILL_STYLE}'>"
+        f"{_format_hour(a)}–{_format_hour((b + 1) % 24)}"
+        f"</span>"
+        for a, b in ranges
+    )
+    if ranges
+    else "<span style='color:#888;'>—</span>"
+)
 
 c1, c2, c3 = st.columns([1, 1, 2])
 c1.metric("Observations",   f"{total_obs:,}")
@@ -156,16 +174,8 @@ c3.markdown(
         <div style="color: rgba(250,250,250,0.6); font-size: 0.875rem;">
             Best windows
         </div>
-        <div style="
-            color: #fafafa;
-            font-size: 1.25rem;
-            font-weight: 400;
-            line-height: 1.4;
-            margin-top: 0.25rem;
-            white-space: normal;
-            word-break: break-word;
-        ">
-            {best_label}
+        <div style="margin-top: 0.35rem; line-height: 1.4;">
+            {best_label_pills}
         </div>
     </div>
     """,

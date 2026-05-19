@@ -108,18 +108,44 @@ m2.metric("Airflow DAGs",             "2")
 m3.metric("Snowflake schemas",        "4")
 m4.metric("dbt models",               "6")
 
-# --- 4. Schema design ----------------------------------------------------------
-with st.expander("Snowflake schema design"):
-    st.markdown(
-        """
-| Schema | Type | Key tables |
-|---|---|---|
-| `RAW` | Source | `vehicle_positions`, `routes` |
-| `STAGING` | dbt views | `stg_vehicle_positions`, `stg_routes` |
-| `INTERMEDIATE` | dbt views | `int_vehicle_delays`, `int_route_performance` |
-| `MARTS` | dbt tables | `mart_route_delay_summary`, `mart_hourly_reliability` |
-"""
+# --- 4. Schema layers ----------------------------------------------------------
+st.markdown("### Snowflake schema layers")
+
+
+def _schema_card(name: str, kind: str, tables: list[str]) -> str:
+    rows = "".join(
+        f"<div style='color:#fafafa;font-size:0.85rem;font-family:monospace;"
+        f"margin-top:0.2rem;'>{t}</div>"
+        for t in tables
     )
+    return (
+        f"<div style='background-color:rgba(218,41,28,0.06);"
+        f"border-left:3px solid {TTC_RED};border-radius:8px;"
+        f"padding:0.75rem 1rem;height:100%;'>"
+        f"<div style='color:{TTC_RED};font-weight:600;font-size:1rem;'>{name}</div>"
+        f"<div style='color:#888;font-size:0.85rem;margin-top:0.1rem;'>{kind}</div>"
+        f"<div style='margin-top:0.5rem;'>{rows}</div>"
+        f"</div>"
+    )
+
+
+sl1, sl2, sl3, sl4 = st.columns(4)
+sl1.markdown(
+    _schema_card("RAW", "Source", ["vehicle_positions", "routes"]),
+    unsafe_allow_html=True,
+)
+sl2.markdown(
+    _schema_card("STAGING", "dbt views", ["stg_vehicle_positions", "stg_routes"]),
+    unsafe_allow_html=True,
+)
+sl3.markdown(
+    _schema_card("INTERMEDIATE", "dbt views", ["int_vehicle_delays", "int_route_performance"]),
+    unsafe_allow_html=True,
+)
+sl4.markdown(
+    _schema_card("MARTS", "dbt tables", ["mart_route_delay_summary", "mart_hourly_reliability"]),
+    unsafe_allow_html=True,
+)
 
 # --- 5. Known limitations ------------------------------------------------------
 with st.expander("Known limitations & planned improvements"):

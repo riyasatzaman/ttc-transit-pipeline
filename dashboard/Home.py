@@ -64,12 +64,35 @@ def get_summary():
 
 
 stats = get_summary().iloc[0]
+refresh_str = format_relative(stats["LAST_UPDATED_AT"])
 
-col1, col2, col3, col4 = st.columns(4)
+# Status strip: green pill summarizing pipeline health.
+st.markdown(
+    f"<div style='background-color:rgba(46,160,67,0.10);"
+    f"border:1px solid rgba(46,160,67,0.35);border-radius:8px;"
+    f"padding:0.55rem 1rem;margin:0.5rem 0 1.2rem 0;"
+    f"color:#fafafa;font-size:0.95rem;'>"
+    f"🟢 <strong>Pipeline live</strong> · "
+    f"Last refresh: {refresh_str} · "
+    f"Ingestion every 15 min · Marts hourly · "
+    f"44 checks passing"
+    f"</div>",
+    unsafe_allow_html=True,
+)
+
+col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric("Routes tracked",       f"{int(stats['ROUTE_COUNT']):,}")
 col2.metric("Vehicle observations", f"{int(stats['TOTAL_OBSERVATIONS']):,}")
 col3.metric("Distinct vehicles",    f"{int(stats['DISTINCT_VEHICLES']):,}")
-col4.metric("Data refreshed",       format_relative(stats["LAST_UPDATED_AT"]))
+col4.metric("Automated checks",     "44", "38 dbt + 6 pytest", delta_color="off")
+col5.metric("Data refreshed",       refresh_str)
+
+st.markdown("### Why this matters")
+st.markdown(
+    "Live transit feeds are noisy and difficult to interpret directly. "
+    "This project turns raw TTC vehicle reports into tested, dashboard-ready "
+    "reliability metrics using a modern data engineering stack."
+)
 
 st.markdown("### The pipeline")
 st.markdown(

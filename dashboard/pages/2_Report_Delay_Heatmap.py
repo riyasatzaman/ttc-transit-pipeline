@@ -123,13 +123,13 @@ best_val  = float(best_cell['AVG_DELAY_S'])
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Observations", f"{total:,}")
 c2.metric(
-    "Worst hour observed",
+    "Highest report delay",
     worst_label,
     f"{worst_val:.1f}s",
     delta_color="inverse",
 )
 c3.metric(
-    "Smoothest hour observed",
+    "Lowest report delay",
     best_label_hm,
     f"{best_val:.1f}s",
 )

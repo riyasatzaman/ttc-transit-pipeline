@@ -94,13 +94,12 @@ c4.metric(
 )
 
 insight_box(
-    f"<strong>Most recently reported:</strong> "
-    f"{best_row['ROUTE_ID']} · {best_row['ROUTE_NAME']} "
-    f"({best_row['PCT_ON_TIME']:.2f}% recent). &nbsp;·&nbsp; "
-    f"<strong>Highest report delay:</strong> "
-    f"{worst_row['ROUTE_ID']} · {worst_row['ROUTE_NAME']} "
-    f"({worst_row['PCT_ON_TIME']:.2f}% recent, avg "
-    f"{float(worst_row['AVG_DELAY_PROXY_SECONDS']):.1f}s)."
+    f"<strong>{best_row['ROUTE_ID']} · {best_row['ROUTE_NAME']}</strong> "
+    f"has the most consistent recent reporting at "
+    f"<strong>{best_row['PCT_ON_TIME']:.2f}%</strong>. "
+    f"<strong>{worst_row['ROUTE_ID']} · {worst_row['ROUTE_NAME']}</strong> "
+    f"has the highest average report delay at "
+    f"<strong>{float(worst_row['AVG_DELAY_PROXY_SECONDS']):.1f}s</strong>."
 )
 
 

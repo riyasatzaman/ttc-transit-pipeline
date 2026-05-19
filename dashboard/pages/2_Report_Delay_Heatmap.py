@@ -15,7 +15,7 @@ from utils.snowflake_connector import query_df
 from utils.ui import TTC_RED, PLOTLY_TEMPLATE, footer, page_header
 
 st.set_page_config(
-    page_title="Reliability Heatmap — TTC",
+    page_title="Report Delay Heatmap — TTC",
     page_icon="🔥",
     layout="wide",
 )
@@ -28,10 +28,10 @@ st.markdown(
 )
 
 page_header(
-    "Reliability Heatmap",
+    "Report Delay Heatmap",
     "🔥",
-    "Each cell is the average signal lag (seconds). "
-    "Redder = higher signal lag (indicator of service irregularity or sparser service).",
+    "Each cell shows the average delay in vehicle location reports for the "
+    "selected route. Redder cells mean vehicles were reporting less recently.",
 )
 
 
@@ -124,7 +124,7 @@ c3.metric(
 
 fig = px.imshow(
     pivot,
-    labels=dict(x="Hour of day", y="Day of week", color="Avg signal lag (s)"),
+    labels=dict(x="Hour of day", y="Day of week", color="Avg Report Delay (s)"),
     aspect="auto",
     color_continuous_scale="Reds",
     template=PLOTLY_TEMPLATE,
@@ -138,19 +138,18 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 st.caption(
-    "Each cell shows average live signal lag. Higher values suggest less "
-    "consistent vehicle reporting and potential service irregularity. "
-    "Empty cells are hours not yet observed — coverage improves as the "
-    "pipeline runs."
+    "Each cell shows the average delay in vehicle location reports. Higher "
+    "values mean vehicles were reporting less recently. Empty cells are hours "
+    "not yet observed — coverage improves as the pipeline runs."
 )
 
 with st.expander("How this metric is calculated"):
     st.markdown(
-        "This dashboard uses live vehicle reporting lag (seconds since last "
-        "position ping) as a route reliability proxy. Lower values indicate "
-        "fresher live vehicle reporting and more consistent service presence. "
-        "True schedule-adherence delay requires GTFS `stop_times` and spatial "
-        "matching, which is listed as a planned improvement."
+        "**Recently Reported %** is the share of vehicle observations where the "
+        "vehicle reported its location within the last 2 minutes. "
+        "**Avg Report Delay** is `max(0, seconds since last report - 120)`. "
+        "This is a live reporting reliability proxy, not official TTC "
+        "schedule adherence."
     )
 
 footer()

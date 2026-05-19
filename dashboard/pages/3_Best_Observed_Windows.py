@@ -33,8 +33,8 @@ st.markdown(
 page_header(
     "Best Observed Windows",
     "⏰",
-    "Green bars mark the 25% of hours with the lowest signal lag "
-    "for the selected route (indicator of more consistent service).",
+    "Highlights the hours when vehicles on this route reported their "
+    "locations most recently.",
 )
 
 
@@ -177,7 +177,7 @@ fig = px.bar(
     color_discrete_map={True: "#1e7e34", False: TTC_RED},
     labels={
         "HOUR_OF_DAY":  "Hour of day",
-        "AVG_DELAY_S":  "Avg signal lag (s)",
+        "AVG_DELAY_S":  "Avg Report Delay (s)",
         "is_best":      "Best window",
     },
     hover_data={"HOUR_OF_DAY": False, "hour_label": True, "TOTAL_OBS": True},
@@ -196,18 +196,17 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 st.caption(
-    "Green bars highlight the lowest-lag observed hours for this route. "
-    "Lower signal lag generally means more consistent live reporting and "
-    "denser observed service."
+    "Green bars highlight the hours with the lowest Avg Report Delay for this "
+    "route — i.e., when vehicles reported their locations most recently."
 )
 
 with st.expander("How this metric is calculated"):
     st.markdown(
-        "This dashboard uses live vehicle reporting lag (seconds since last "
-        "position ping) as a route reliability proxy. Lower values indicate "
-        "fresher live vehicle reporting and more consistent service presence. "
-        "True schedule-adherence delay requires GTFS `stop_times` and spatial "
-        "matching, which is listed as a planned improvement."
+        "**Recently Reported %** is the share of vehicle observations where the "
+        "vehicle reported its location within the last 2 minutes. "
+        "**Avg Report Delay** is `max(0, seconds since last report - 120)`. "
+        "This is a live reporting reliability proxy, not official TTC "
+        "schedule adherence."
     )
 
 footer()

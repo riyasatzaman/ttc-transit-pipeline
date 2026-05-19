@@ -119,7 +119,7 @@ with st.expander("Snowflake schema design"):
 with st.expander("Known limitations & planned improvements"):
     st.markdown(
         """
-**Current MVP uses live vehicle reporting lag as a reliability proxy.**
+**Current MVP uses live vehicle report delay as a reliability proxy.**
 True schedule-adherence delay requires GTFS `stop_times` and spatial
 matching — listed as a planned improvement.
 

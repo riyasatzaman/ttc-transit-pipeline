@@ -33,8 +33,8 @@ st.markdown(
 st.markdown(f"<h1>🚇 TTC Transit Reliability Monitor</h1>", unsafe_allow_html=True)
 st.markdown(
     "<p style='color: #bbb; font-size: 1.1rem;'>"
-    "A live analytics dashboard tracking route signal freshness and reliability "
-    "patterns across Toronto's transit network."
+    "A live analytics dashboard tracking how recently TTC vehicles report "
+    "their locations across Toronto's transit network."
     "</p>",
     unsafe_allow_html=True,
 )
@@ -88,21 +88,22 @@ nav_col1.markdown(
     "reporting? Sortable leaderboard with green/yellow/red tiers."
 )
 nav_col2.markdown(
-    "**🔥 Reliability Heatmap**  \nWhen during the week is a given route's "
-    "signal lag highest? 24 × 7 grid with redder = higher signal lag."
+    "**🔥 Report Delay Heatmap**  \nWhen during the week do vehicles on a "
+    "given route report least recently? 24 × 7 grid with redder = higher "
+    "Avg Report Delay."
 )
 nav_col3.markdown(
-    "**⏰ Best Observed Windows**  \nWhich hours have the lowest signal lag "
-    "for a given route? Hourly bar chart with the lowest-lag windows highlighted."
+    "**⏰ Best Observed Windows**  \nWhich hours have the most recent vehicle "
+    "reporting for a given route? Hourly bar chart with the most-recent windows highlighted."
 )
 
 with st.expander("How this metric is calculated"):
     st.markdown(
-        "This dashboard uses live vehicle reporting lag (seconds since last "
-        "position ping) as a route reliability proxy. Lower values indicate "
-        "fresher live vehicle reporting and more consistent service presence. "
-        "True schedule-adherence delay requires GTFS `stop_times` and spatial "
-        "matching, which is listed as a planned improvement."
+        "**Recently Reported %** is the share of vehicle observations where the "
+        "vehicle reported its location within the last 2 minutes. "
+        "**Avg Report Delay** is `max(0, seconds since last report - 120)`. "
+        "This is a live reporting reliability proxy, not official TTC "
+        "schedule adherence."
     )
 
 footer()

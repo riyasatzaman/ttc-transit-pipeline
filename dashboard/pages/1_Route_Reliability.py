@@ -76,15 +76,15 @@ worst_row = df.iloc[0]
 avg_on_time = float(df["PCT_ON_TIME"].mean())
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Routes shown", f"{len(df):,}")
-c2.metric("Avg on-time",  f"{avg_on_time:.2f}%")
+c1.metric("Routes shown",         f"{len(df):,}")
+c2.metric("Avg recently reported", f"{avg_on_time:.2f}%")
 c3.metric(
-    "Most reliable",
+    "Most Recently Reported",
     f"{best_row['ROUTE_ID']} · {best_row['ROUTE_NAME']}",
     f"{best_row['PCT_ON_TIME']:.2f}%",
 )
 c4.metric(
-    "Least reliable",
+    "Highest Report Delay",
     f"{worst_row['ROUTE_ID']} · {worst_row['ROUTE_NAME']}",
     f"{worst_row['PCT_ON_TIME']:.2f}%",
     delta_color="inverse",
@@ -106,24 +106,24 @@ styled = (
             "ROUTE_NAME":              "Name",
             "TOTAL_OBSERVATIONS":      "Observations",
             "DISTINCT_VEHICLES":       "Vehicles",
-            "PCT_ON_TIME":             "On-time %",
-            "PCT_DELAYED":             "Lagged %",
-            "AVG_DELAY_PROXY_SECONDS": "Avg signal lag (s)",
+            "PCT_ON_TIME":             "Recently Reported %",
+            "PCT_DELAYED":             "Stale Reports %",
+            "AVG_DELAY_PROXY_SECONDS": "Avg Report Delay (s)",
             "AVG_SPEED_KMH":           "Avg speed (km/h)",
-            "LAST_OBSERVED_AT":        "Last observed",
+            "LAST_OBSERVED_AT":        "Last Seen",
         }
     )
     .style
-    .map(color_pct_on_time, subset=["On-time %"])
+    .map(color_pct_on_time, subset=["Recently Reported %"])
     .format(
         {
-            "On-time %":          "{:.2f}",
-            "Lagged %":           "{:.2f}",
-            "Avg signal lag (s)": "{:.1f}",
-            "Avg speed (km/h)":   "{:.1f}",
-            "Observations":       "{:,.0f}",
-            "Vehicles":           "{:,.0f}",
-            "Last observed":      "{:%Y-%m-%d %H:%M UTC}",
+            "Recently Reported %":  "{:.2f}",
+            "Stale Reports %":      "{:.2f}",
+            "Avg Report Delay (s)": "{:.1f}",
+            "Avg speed (km/h)":     "{:.1f}",
+            "Observations":         "{:,.0f}",
+            "Vehicles":             "{:,.0f}",
+            "Last Seen":            "{:%Y-%m-%d %H:%M UTC}",
         }
     )
 )
@@ -131,19 +131,18 @@ styled = (
 st.dataframe(styled, use_container_width=True, height=520)
 st.caption(
     f"Showing {len(df):,} routes with ≥ {min_obs:,} observations. "
-    "**On-time %** = share of observations where the vehicle pinged the "
-    "feed within the last 2 minutes (proxy for the vehicle being live and "
-    "not stuck offline). **Avg signal lag (s)** is "
-    "`max(0, secs_since_report - 120)`."
+    "**Recently Reported %** is the share of vehicle observations where the "
+    "vehicle reported its location within the last 2 minutes. "
+    "**Avg Report Delay (s)** is `max(0, seconds since last report - 120)`."
 )
 
 with st.expander("How this metric is calculated"):
     st.markdown(
-        "This dashboard uses live vehicle reporting lag (seconds since last "
-        "position ping) as a route reliability proxy. Lower values indicate "
-        "fresher live vehicle reporting and more consistent service presence. "
-        "True schedule-adherence delay requires GTFS `stop_times` and spatial "
-        "matching, which is listed as a planned improvement."
+        "**Recently Reported %** is the share of vehicle observations where the "
+        "vehicle reported its location within the last 2 minutes. "
+        "**Avg Report Delay** is `max(0, seconds since last report - 120)`. "
+        "This is a live reporting reliability proxy, not official TTC "
+        "schedule adherence."
     )
 
 footer()

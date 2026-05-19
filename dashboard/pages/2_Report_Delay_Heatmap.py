@@ -12,13 +12,15 @@ import plotly.express as px
 import streamlit as st
 
 from utils.snowflake_connector import query_df
-from utils.ui import TTC_RED, PLOTLY_TEMPLATE, footer, page_header
+from utils.ui import TTC_RED, PLOTLY_TEMPLATE, footer, insight_box, page_header, sidebar_branding
 
 st.set_page_config(
     page_title="Report Delay Heatmap — TTC",
     page_icon="🔥",
     layout="wide",
 )
+
+sidebar_branding()
 
 st.markdown(
     f"<style>div[data-testid='stMetric'] {{"
@@ -28,7 +30,7 @@ st.markdown(
 )
 
 page_header(
-    "Report Delay Heatmap",
+    "Vehicle Report Delay Heatmap",
     "🔥",
     "Each cell shows the average delay in vehicle location reports for the "
     "selected route. Redder cells mean vehicles were reporting less recently.",
@@ -105,21 +107,44 @@ worst_cell = df.loc[df["AVG_DELAY_S"].idxmax()]
 best_cell  = df.loc[df["AVG_DELAY_S"].idxmin()]
 total = int(df["TOTAL_OBS"].sum())
 hours_observed = int(df.shape[0])
+coverage_pct = 100.0 * hours_observed / 168.0
 
-c1, c2, c3 = st.columns(3)
+worst_label = (
+    f"{day_labels[int(worst_cell['DAY_OF_WEEK'])]} "
+    f"{pivot.columns[int(worst_cell['HOUR_OF_DAY'])]}"
+)
+best_label_hm = (
+    f"{day_labels[int(best_cell['DAY_OF_WEEK'])]} "
+    f"{pivot.columns[int(best_cell['HOUR_OF_DAY'])]}"
+)
+worst_val = float(worst_cell['AVG_DELAY_S'])
+best_val  = float(best_cell['AVG_DELAY_S'])
+
+c1, c2, c3, c4 = st.columns(4)
 c1.metric("Observations", f"{total:,}")
 c2.metric(
     "Worst hour observed",
-    f"{day_labels[int(worst_cell['DAY_OF_WEEK'])]} "
-    f"{pivot.columns[int(worst_cell['HOUR_OF_DAY'])]}",
-    f"{float(worst_cell['AVG_DELAY_S']):.1f}s",
+    worst_label,
+    f"{worst_val:.1f}s",
     delta_color="inverse",
 )
 c3.metric(
     "Smoothest hour observed",
-    f"{day_labels[int(best_cell['DAY_OF_WEEK'])]} "
-    f"{pivot.columns[int(best_cell['HOUR_OF_DAY'])]}",
-    f"{float(best_cell['AVG_DELAY_S']):.1f}s",
+    best_label_hm,
+    f"{best_val:.1f}s",
+)
+c4.metric(
+    "Coverage",
+    f"{hours_observed} / 168",
+    f"{coverage_pct:.1f}% of all hour × day cells",
+    delta_color="off",
+)
+
+insight_box(
+    f"<strong>Highest report delay:</strong> {worst_label} "
+    f"(avg {worst_val:.1f}s). &nbsp;·&nbsp; "
+    f"<strong>Lowest report delay:</strong> {best_label_hm} "
+    f"(avg {best_val:.1f}s)."
 )
 
 fig = px.imshow(

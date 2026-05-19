@@ -6,13 +6,15 @@ instantly and stays in sync with the README.
 """
 import streamlit as st
 
-from utils.ui import TTC_RED, footer, page_header
+from utils.ui import TTC_RED, footer, page_header, sidebar_branding
 
 st.set_page_config(
     page_title="Pipeline Architecture — TTC",
     page_icon="⚙️",
     layout="wide",
 )
+
+sidebar_branding()
 
 # Metric-tile styling consistent with the other pages.
 st.markdown(
@@ -31,15 +33,19 @@ page_header(
 
 # --- 1. Pipeline flow diagram --------------------------------------------------
 def _step(emoji: str, label: str, sub: str = "") -> str:
+    # word-break: keep-all + overflow-wrap: normal prevents narrow viewports
+    # from breaking "Script" into "Scri pt" or "JSON" into "JSO N".
     sub_html = (
-        f"<div style='color:#888;font-size:0.85rem;margin-top:0.2rem;'>{sub}</div>"
+        f"<div style='color:#888;font-size:0.85rem;margin-top:0.2rem;"
+        f"word-break:keep-all;overflow-wrap:normal;'>{sub}</div>"
         if sub else ""
     )
     return (
         f"<div style='background-color:rgba(218,41,28,0.06);"
         f"border-left:3px solid {TTC_RED};border-radius:8px;"
         f"padding:0.75rem 1rem;margin:0.4rem 0;'>"
-        f"<div style='color:#fafafa;font-size:1rem;font-weight:500;'>{emoji} {label}</div>"
+        f"<div style='color:#fafafa;font-size:1rem;font-weight:500;"
+        f"word-break:keep-all;overflow-wrap:normal;'>{emoji} {label}</div>"
         f"{sub_html}</div>"
     )
 
@@ -97,7 +103,7 @@ s4.markdown(
 # --- 3. Data quality summary ---------------------------------------------------
 st.markdown("### By the numbers")
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Automated checks passing", "44")
+m1.metric("Automated checks passing", "44", "38 dbt tests + 6 pytest checks", delta_color="off")
 m2.metric("Airflow DAGs",             "2")
 m3.metric("Snowflake schemas",        "4")
 m4.metric("dbt models",               "6")

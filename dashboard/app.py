@@ -6,13 +6,15 @@ file, so navigation in the sidebar appears for free.
 import streamlit as st
 
 from utils.snowflake_connector import query_df
-from utils.ui import TTC_RED, footer, format_relative
+from utils.ui import TTC_RED, footer, format_relative, sidebar_branding
 
 st.set_page_config(
     page_title="TTC Transit Reliability Monitor",
     page_icon="🚇",
     layout="wide",
 )
+
+sidebar_branding()
 
 # TTC red accent on headings; subtle red glow on metric tiles.
 st.markdown(
@@ -84,17 +86,16 @@ st.markdown(
 st.markdown("### What's on each page")
 nav_col1, nav_col2, nav_col3 = st.columns(3)
 nav_col1.markdown(
-    "**🚌 Route Reliability**  \nWhich TTC routes have the most consistent live "
-    "reporting? Sortable leaderboard with green/yellow/red tiers."
+    "**🚌 Route Reliability**  \nWhich TTC routes are reporting most consistently? "
+    "Sortable leaderboard with green/yellow/red tiers."
 )
 nav_col2.markdown(
-    "**🔥 Report Delay Heatmap**  \nWhen during the week do vehicles on a "
-    "given route report least recently? 24 × 7 grid with redder = higher "
-    "Avg Report Delay."
+    "**🔥 Report Delay Heatmap**  \nWhen are vehicle reports most delayed? "
+    "A 24 × 7 heatmap shows report delay by hour and weekday."
 )
 nav_col3.markdown(
-    "**⏰ Best Observed Windows**  \nWhich hours have the most recent vehicle "
-    "reporting for a given route? Hourly bar chart with the most-recent windows highlighted."
+    "**⏰ Best Observed Windows**  \nWhich hours have the most up-to-date vehicle "
+    "reports? Green bars highlight the best observed windows."
 )
 
 with st.expander("How this metric is calculated"):

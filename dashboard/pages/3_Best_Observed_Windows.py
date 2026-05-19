@@ -15,13 +15,15 @@ import plotly.express as px
 import streamlit as st
 
 from utils.snowflake_connector import query_df
-from utils.ui import TTC_RED, PLOTLY_TEMPLATE, footer, page_header
+from utils.ui import TTC_RED, PLOTLY_TEMPLATE, footer, insight_box, page_header, sidebar_branding
 
 st.set_page_config(
     page_title="Best Observed Windows — TTC",
     page_icon="⏰",
     layout="wide",
 )
+
+sidebar_branding()
 
 st.markdown(
     f"<style>div[data-testid='stMetric'] {{"
@@ -138,6 +140,7 @@ best_label = (
 c1, c2, c3 = st.columns([1, 1, 2])
 c1.metric("Observations",   f"{total_obs:,}")
 c2.metric("Hours observed", f"{hours_observed} / 24")
+
 # c3 uses a custom HTML block instead of st.metric so the time-range list
 # can wrap. st.metric forces white-space:nowrap on the value, which
 # truncates "12am-1am · 2am-3am · 5pm-6pm · ..." with an ellipsis.
@@ -169,6 +172,13 @@ c3.markdown(
     unsafe_allow_html=True,
 )
 
+if ranges:
+    insight_box(
+        f"For <strong>{selected}</strong>, the most up-to-date vehicle "
+        f"reports happen during: <strong>{best_label}</strong>. "
+        f"Plan around these hours for the freshest live tracking."
+    )
+
 fig = px.bar(
     df,
     x="HOUR_OF_DAY",
@@ -196,8 +206,8 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 st.caption(
-    "Green bars highlight the hours with the lowest Avg Report Delay for this "
-    "route — i.e., when vehicles reported their locations most recently."
+    "Green bars highlight the hours with the lowest average report delay, "
+    "meaning vehicles were reporting their locations most recently."
 )
 
 with st.expander("How this metric is calculated"):

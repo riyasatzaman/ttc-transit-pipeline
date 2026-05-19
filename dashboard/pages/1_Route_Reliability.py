@@ -12,13 +12,15 @@ import pandas as pd
 import streamlit as st
 
 from utils.snowflake_connector import query_df
-from utils.ui import TTC_RED, footer, page_header
+from utils.ui import TTC_RED, footer, insight_box, page_header, sidebar_branding
 
 st.set_page_config(
     page_title="Route Reliability — TTC",
     page_icon="📊",
     layout="wide",
 )
+
+sidebar_branding()
 
 st.markdown(
     f"<style>div[data-testid='stMetric'] {{"
@@ -30,7 +32,8 @@ st.markdown(
 page_header(
     "Route Reliability Leaderboard",
     "🚌",
-    "Sorted worst-first so the routes needing attention rise to the top.",
+    "Routes are sorted by highest report delay so inconsistent live "
+    "reporting rises to the top.",
 )
 
 min_obs = st.slider(
@@ -90,6 +93,16 @@ c4.metric(
     delta_color="inverse",
 )
 
+insight_box(
+    f"<strong>Most recently reported:</strong> "
+    f"{best_row['ROUTE_ID']} · {best_row['ROUTE_NAME']} "
+    f"({best_row['PCT_ON_TIME']:.2f}% recent). &nbsp;·&nbsp; "
+    f"<strong>Highest report delay:</strong> "
+    f"{worst_row['ROUTE_ID']} · {worst_row['ROUTE_NAME']} "
+    f"({worst_row['PCT_ON_TIME']:.2f}% recent, avg "
+    f"{float(worst_row['AVG_DELAY_PROXY_SECONDS']):.1f}s)."
+)
+
 
 def color_pct_on_time(val: float) -> str:
     if val >= 80:
@@ -131,16 +144,17 @@ styled = (
 st.dataframe(styled, use_container_width=True, height=520)
 st.caption(
     f"Showing {len(df):,} routes with ≥ {min_obs:,} observations. "
-    "**Recently Reported %** is the share of vehicle observations where the "
-    "vehicle reported its location within the last 2 minutes. "
-    "**Avg Report Delay (s)** is `max(0, seconds since last report - 120)`."
+    "**Recently Reported %** is the share of observations where a vehicle "
+    "reported its location within the last 2 minutes. **Avg Report Delay** "
+    "is the extra time beyond that 2-minute window."
 )
 
 with st.expander("How this metric is calculated"):
     st.markdown(
         "**Recently Reported %** is the share of vehicle observations where the "
         "vehicle reported its location within the last 2 minutes. "
-        "**Avg Report Delay** is `max(0, seconds since last report - 120)`. "
+        "**Avg Report Delay** is `max(0, seconds_since_last_report - 120)` — "
+        "the extra time beyond the 2-minute window, in seconds. "
         "This is a live reporting reliability proxy, not official TTC "
         "schedule adherence."
     )

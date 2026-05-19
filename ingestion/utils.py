@@ -24,10 +24,12 @@ def raw_data_dir() -> Path:
     return Path(os.getenv("RAW_DATA_DIR", "data/raw"))
 
 
-def save_raw_payload(payload: dict, ingested_at: datetime) -> Path:
+def save_raw_payload(
+    payload: dict, ingested_at: datetime, prefix: str = "vehicle_positions"
+) -> Path:
     out_dir = raw_data_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
-    fname = f"vehicle_positions_{ingested_at.strftime('%Y%m%dT%H%M%SZ')}.json"
+    fname = f"{prefix}_{ingested_at.strftime('%Y%m%dT%H%M%SZ')}.json"
     path = out_dir / fname
     path.write_text(json.dumps(payload))
     return path

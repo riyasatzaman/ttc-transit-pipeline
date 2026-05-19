@@ -1,0 +1,87 @@
+version: 2
+
+# ---------------------------------------------------------------------------
+# Sources: raw tables landed by the ingestion DAG.
+# ---------------------------------------------------------------------------
+sources:
+  - name: raw
+    description: "Append-only raw tables populated by the ingestion DAG."
+    database: TTC_ANALYTICS
+    schema: RAW
+    tables:
+      - name: vehicle_positions
+        description: "One row per observed vehicle position from the UMOIQ feed."
+        columns:
+          - name: vehicle_id
+            description: "TTC vehicle (bus/streetcar) id from the feed."
+            tests:
+              - not_null
+          - name: route_id
+            description: "TTC route number, e.g. '510'."
+            tests:
+              - not_null
+          - name: _ingested_at
+            description: "UTC timestamp when the ingestion run captured this row."
+            tests:
+              - not_null
+      - name: routes
+        description: "TTC route reference data from the UMOIQ routeList feed."
+        columns:
+          - name: route_id
+            description: "TTC route number, e.g. '510'."
+            tests:
+              - not_null
+          - name: _ingested_at
+            description: "UTC timestamp when the ingestion run captured this row."
+            tests:
+              - not_null
+
+# ---------------------------------------------------------------------------
+# Staging models.
+# ---------------------------------------------------------------------------
+models:
+  - name: stg_vehicle_positions
+    description: >
+      Cleaned vehicle position observations. Type-cast, null-filtered, and
+      deduplicated by (vehicle_id, recorded_at) keeping the latest ingest.
+    columns:
+      - name: vehicle_id
+        description: "TTC vehicle id."
+        tests:
+          - not_null
+      - name: route_id
+        description: "TTC route number."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_routes')
+              field: route_id
+      - name: recorded_at
+        description: "When the vehicle reported this position (UTC)."
+        tests:
+          - not_null
+      - name: latitude
+        description: "Vehicle latitude in WGS84."
+      - name: longitude
+        description: "Vehicle longitude in WGS84."
+      - name: speed_kmh
+        description: "Reported speed in km/h."
+      - name: direction_id
+        description: "0 or 1, parsed from the feed's dirTag."
+
+  - name: stg_routes
+    description: >
+      One row per TTC route. Title is split into route_short_name (the route
+      number) and route_long_name (the descriptive name).
+    columns:
+      - name: route_id
+        description: "TTC route number."
+        tests:
+          - not_null
+          - unique
+      - name: route_title
+        description: "Raw 'title' from the feed, e.g. '7-Bathurst'."
+      - name: route_short_name
+        description: "Leading segment of the title (usually equals route_id)."
+      - name: route_long_name
+        description: "Descriptive portion of the title."

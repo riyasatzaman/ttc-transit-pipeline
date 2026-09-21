@@ -7,20 +7,16 @@ instantly and stays in sync with the README.
 import streamlit as st
 
 from utils.ui import (
-    BORDER,
-    CARD_BG,
-    TEXT_MUTED,
-    TEXT_PRIMARY,
-    TEXT_SECONDARY,
-    TTC_RED,
-    arch_arrow,
-    arch_step,
+    ACCENT,
+    CARD,
+    CARD_BORDER,
+    TEXT_1,
+    TEXT_2,
     footer,
     inject_global_css,
-    kpi_card,
+    kpi_row,
     page_header,
-    page_preview_card,
-    sidebar_branding,
+    sidebar_brand,
 )
 
 st.set_page_config(
@@ -30,125 +26,59 @@ st.set_page_config(
 )
 
 inject_global_css()
-sidebar_branding()
+sidebar_brand()
 
 page_header(
     "Pipeline Architecture",
-    "",
     "How live TTC vehicle data flows from the public feed to this dashboard.",
 )
 
-# --- 1. Vertical pipeline flow --------------------------------------------
-# Numbered steps (01–08) render as small TTC-red badges via arch_step's
-# digit-prefix branch — no emojis used.
-st.markdown(
-    arch_step("01", "Live TTC Vehicle Feed", "public UMOIQ API")
-    + arch_arrow("every 15 minutes")
-    + arch_step("02", "Python Ingestion Script")
-    + arch_arrow()
-    + arch_step("03", "Raw JSON Files", "data/raw/")
-    + arch_arrow()
-    + arch_step("04", "Apache Airflow DAG", "ttc_ingestion_dag")
-    + arch_arrow()
-    + arch_step("05", "Snowflake RAW Schema", "vehicle_positions, routes")
-    + arch_arrow()
-    + arch_step("06", "dbt Models", "staging → intermediate → marts")
-    + arch_arrow()
-    + arch_step("07", "Snowflake MARTS Schema")
-    + arch_arrow()
-    + arch_step("08", "Streamlit Dashboard", "this app"),
-    unsafe_allow_html=True,
-)
-
-# --- 2. Stack cards -------------------------------------------------------
-st.markdown("### Stack")
-s1, s2, s3, s4 = st.columns(4)
-s1.markdown(
-    page_preview_card(
-        "", "Airflow",
-        "Orchestrates ingestion every 15 min and dbt hourly. Two DAGs: "
-        "<code>ttc_ingestion_dag</code> and <code>ttc_dbt_dag</code>.",
-    ),
-    unsafe_allow_html=True,
-)
-s2.markdown(
-    page_preview_card(
-        "", "Snowflake",
-        "Cloud warehouse. Four schemas: RAW · STAGING · INTERMEDIATE · MARTS. "
-        "RAW is append-only.",
-    ),
-    unsafe_allow_html=True,
-)
-s3.markdown(
-    page_preview_card(
-        "", "dbt",
-        "Six SQL models across staging, intermediate, and mart layers. "
-        "Schema tested with 44 automated checks.",
-    ),
-    unsafe_allow_html=True,
-)
-s4.markdown(
-    page_preview_card(
-        "", "Streamlit",
-        "Three analytics pages reading from Snowflake MARTS. Deployed on "
-        "Streamlit Community Cloud.",
-    ),
-    unsafe_allow_html=True,
-)
-
-# --- 3. By the numbers ----------------------------------------------------
-st.markdown("### By the numbers")
-m1, m2, m3, m4 = st.columns(4)
-m1.markdown(
-    kpi_card("Automated checks passing", "44", "38 dbt tests + 6 pytest"),
-    unsafe_allow_html=True,
-)
-m2.markdown(kpi_card("Airflow DAGs",      "2", "ingestion + dbt build"),  unsafe_allow_html=True)
-m3.markdown(kpi_card("Snowflake schemas", "4", "RAW → STAGING → INT → MARTS"), unsafe_allow_html=True)
-m4.markdown(kpi_card("dbt models",        "6", "2 staging + 2 int + 2 marts"), unsafe_allow_html=True)
+# --- By the numbers ---------------------------------------------------
+kpi_row([
+    {"label": "Automated checks",  "value": "44", "sub": "38 dbt tests + 6 pytest"},
+    {"label": "Airflow DAGs",      "value": "2",  "sub": "ingestion + dbt build"},
+    {"label": "Snowflake schemas", "value": "4",  "sub": "RAW → STAGING → INT → MARTS"},
+    {"label": "dbt models",        "value": "6",  "sub": "2 staging + 2 int + 2 marts"},
+])
 
 
-# --- 4. Snowflake schema layer cards --------------------------------------
-def _schema_card(name: str, kind: str, tables: list[str]) -> str:
-    rows = "".join(
-        f"<div style='color:{TEXT_PRIMARY};font-size:0.86rem;font-family:"
-        f"\"SF Mono\",Menlo,monospace;margin-top:0.25rem;letter-spacing:-0.01em;'>"
-        f"{t}</div>"
-        for t in tables
+# --- Numbered pipeline steps, as a 2-column grid --------------------------
+def _step_card(num: str, label: str, sub: str = "") -> str:
+    # Built as single-line HTML — a blank line inside a block passed to
+    # st.markdown(unsafe_allow_html=True) ends the raw-HTML block early and
+    # dumps everything after it onto the page as literal text.
+    sub_html = (
+        f'<div style="color:{TEXT_2};font-size:0.8rem;margin-top:0.3rem">{sub}</div>'
+        if sub else ""
     )
     return (
-        f"<div style='background-color:{CARD_BG};border:1px solid {BORDER};"
-        f"border-radius:14px;padding:1rem 1.15rem;height:100%;min-height:130px;'>"
-        f"<div style='color:{TTC_RED};font-weight:700;font-size:0.95rem;"
-        f"letter-spacing:0.04em;'>{name}</div>"
-        f"<div style='color:{TEXT_MUTED};font-size:0.78rem;margin-top:0.15rem;"
-        f"text-transform:uppercase;letter-spacing:0.05em;'>{kind}</div>"
-        f"<div style='margin-top:0.6rem;'>{rows}</div></div>"
+        f'<div style="background:{CARD};border:1px solid {CARD_BORDER};border-left:3px solid {ACCENT};'
+        f'border-radius:10px;padding:0.95rem 1.15rem;">'
+        f'<div style="color:{TEXT_1};font-size:1rem;font-weight:600">'
+        f'<span style="color:{ACCENT};font-weight:700;font-size:0.78rem;'
+        f'letter-spacing:0.12em;margin-right:0.6rem">{num}</span>{label}</div>'
+        f'{sub_html}</div>'
     )
 
 
-st.markdown("### Snowflake schema layers")
-sl1, sl2, sl3, sl4 = st.columns(4)
-sl1.markdown(
-    _schema_card("RAW", "Source", ["vehicle_positions", "routes"]),
-    unsafe_allow_html=True,
-)
-sl2.markdown(
-    _schema_card("STAGING", "dbt views", ["stg_vehicle_positions", "stg_routes"]),
-    unsafe_allow_html=True,
-)
-sl3.markdown(
-    _schema_card("INTERMEDIATE", "dbt views",
-                 ["int_vehicle_delays", "int_route_performance"]),
-    unsafe_allow_html=True,
-)
-sl4.markdown(
-    _schema_card("MARTS", "dbt tables",
-                 ["mart_route_delay_summary", "mart_hourly_reliability"]),
+_steps = [
+    ("01", "Live TTC Vehicle Feed", "public UMOIQ API"),
+    ("02", "Python Ingestion Script", ""),
+    ("03", "Raw JSON Files", "data/raw/"),
+    ("04", "Apache Airflow DAG", "ttc_ingestion_dag"),
+    ("05", "Snowflake RAW Schema", "vehicle_positions, routes"),
+    ("06", "dbt Models", "staging → intermediate → marts"),
+    ("07", "Snowflake MARTS Schema", ""),
+    ("08", "Streamlit Dashboard", "this app"),
+]
+st.markdown(
+    f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0 1.5rem 0">'
+    + "".join(_step_card(n, l, s) for n, l, s in _steps)
+    + "</div>",
     unsafe_allow_html=True,
 )
 
-# --- 5. Known limitations -------------------------------------------------
+# --- Known limitations -------------------------------------------------
 with st.expander("Known limitations & planned improvements"):
     st.markdown(
         """

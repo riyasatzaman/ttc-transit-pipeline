@@ -7,16 +7,19 @@ import streamlit as st
 
 from utils.snowflake_connector import query_df
 from utils.ui import (
+    ACCENT,
+    CARD,
+    CARD_BORDER,
+    GREEN,
+    TEXT_1,
+    TEXT_2,
     footer,
     format_relative,
-    hero,
-    horizontal_flow,
     inject_global_css,
-    kpi_card,
-    page_preview_card,
-    pill,
-    pill_row,
-    sidebar_branding,
+    kpi_row,
+    page_header,
+    section_label,
+    sidebar_brand,
 )
 
 st.set_page_config(
@@ -26,15 +29,12 @@ st.set_page_config(
 )
 
 inject_global_css()
-sidebar_branding()
+sidebar_brand()
 
-# --- Hero -----------------------------------------------------------------
-hero(
+page_header(
     "TTC Transit Reliability Monitor",
-    "A live analytics dashboard tracking how recently TTC vehicles report "
-    "their locations across Toronto's transit network.",
-    "Powered by an Airflow → Snowflake → dbt → Streamlit pipeline that "
-    "ingests live TTC vehicle data every 15 minutes.",
+    "A live analytics dashboard tracking route signal freshness across "
+    "Toronto's transit network.",
 )
 
 
@@ -56,27 +56,32 @@ def get_summary():
 stats = get_summary().iloc[0]
 refresh_str = format_relative(stats["LAST_UPDATED_AT"])
 
-# --- Status pills ---------------------------------------------------------
-pill_row([
-    pill("Pipeline live", variant="success"),
-    pill(f"Last refresh: {refresh_str}"),
-    pill("44 checks passing"),
-])
+# --- Status row -------------------------------------------------------
+st.markdown(
+    f"""
+    <div style="display:flex;align-items:center;gap:1.5rem;margin:0.5rem 0 1.5rem 0;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:{TEXT_1}">
+            <span style="width:8px;height:8px;border-radius:50%;background:{GREEN};display:inline-block"></span>
+            Pipeline live
+        </div>
+        <div style="font-size:0.85rem;color:{TEXT_2}">Last refresh: {refresh_str}</div>
+        <div style="font-size:0.85rem;color:{TEXT_2}">44 checks passing</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # --- KPI row --------------------------------------------------------------
-kpis = [
-    ("Routes tracked",       f"{int(stats['ROUTE_COUNT']):,}",        "TTC routes observed"),
-    ("Vehicle observations", f"{int(stats['TOTAL_OBSERVATIONS']):,}", "live samples ingested"),
-    ("Distinct vehicles",    f"{int(stats['DISTINCT_VEHICLES']):,}",  "vehicles seen"),
-    ("Automated checks",     "44",                                    "38 dbt + 6 pytest"),
-    ("Data refreshed",       refresh_str,                             "auto every hour"),
-]
-cols = st.columns(5)
-for col, (label, value, sub) in zip(cols, kpis):
-    col.markdown(kpi_card(label, value, sub), unsafe_allow_html=True)
+kpi_row([
+    {"label": "Routes tracked",       "value": f"{int(stats['ROUTE_COUNT']):,}",        "sub": "TTC routes observed"},
+    {"label": "Vehicle observations", "value": f"{int(stats['TOTAL_OBSERVATIONS']):,}", "sub": "live samples ingested"},
+    {"label": "Distinct vehicles",    "value": f"{int(stats['DISTINCT_VEHICLES']):,}",  "sub": "vehicles seen"},
+    {"label": "Automated checks",     "value": "44",                                    "sub": "38 dbt + 6 pytest"},
+    {"label": "Data refreshed",       "value": refresh_str,                             "sub": "auto every hour"},
+])
 
 # --- Why this matters -----------------------------------------------------
-st.markdown("### Why this matters")
+section_label("Why this matters")
 st.markdown(
     "Live transit feeds are noisy and difficult to interpret directly. "
     "This project turns raw TTC vehicle reports into tested, dashboard-ready "
@@ -84,41 +89,32 @@ st.markdown(
 )
 
 # --- Pipeline flow --------------------------------------------------------
-st.markdown("### The pipeline")
-horizontal_flow([
-    ("", "TTC Feed",        "live"),
-    ("", "Airflow",         "every 15 min"),
-    ("", "Snowflake RAW",   "append-only"),
-    ("", "dbt Models",      "tested"),
-    ("", "Snowflake MARTS", "dashboard-ready"),
-    ("", "Streamlit",       "this app"),
-])
-
-# --- Page preview cards ---------------------------------------------------
-st.markdown("### What's on each page")
-nav_col1, nav_col2, nav_col3 = st.columns(3)
-nav_col1.markdown(
-    page_preview_card(
-        "", "Route Reliability",
-        "Which TTC routes are reporting most consistently? Sortable "
-        "leaderboard with green/yellow/red tiers.",
-    ),
-    unsafe_allow_html=True,
-)
-nav_col2.markdown(
-    page_preview_card(
-        "", "Report Delay Heatmap",
-        "When are vehicle reports most delayed? A 24 × 7 heatmap shows "
-        "report delay by hour and weekday.",
-    ),
-    unsafe_allow_html=True,
-)
-nav_col3.markdown(
-    page_preview_card(
-        "", "Best Observed Windows",
-        "Which hours have the most up-to-date vehicle reports? Green bars "
-        "highlight the best observed windows.",
-    ),
+section_label("The pipeline")
+_steps = [
+    ("TTC Feed",        "live"),
+    ("Airflow",         "every 15 min"),
+    ("Snowflake RAW",   "append-only"),
+    ("dbt Models",      "tested"),
+    ("Snowflake MARTS", "dashboard-ready"),
+    ("Streamlit",       "this app"),
+]
+_step_html = ""
+for i, (label, sub) in enumerate(_steps):
+    _step_html += f"""
+    <div style="flex:1;min-width:120px;background:{CARD};border:1px solid {CARD_BORDER};
+                border-radius:10px;padding:1rem 0.8rem;text-align:center">
+        <div style="color:{TEXT_1};font-weight:600;font-size:0.95rem">{label}</div>
+        <div style="color:{TEXT_2};font-size:0.76rem;margin-top:0.3rem;letter-spacing:0.02em">{sub}</div>
+    </div>
+    """
+    if i < len(_steps) - 1:
+        _step_html += (
+            f'<div style="color:{ACCENT};font-size:1.25rem;align-self:center;'
+            f'padding:0 0.15rem;flex:0 0 auto">→</div>'
+        )
+st.markdown(
+    f'<div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:stretch;'
+    f'margin:0.25rem 0 1.5rem 0">{_step_html}</div>',
     unsafe_allow_html=True,
 )
 

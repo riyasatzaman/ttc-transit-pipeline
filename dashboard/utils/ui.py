@@ -1,8 +1,9 @@
 """Reusable UI primitives + global CSS for the TTC dashboard.
 
-This file is the visual design system. Every page calls inject_global_css()
-once at the top, then uses the helpers (hero, kpi_card, pill, insight_box,
-arch_step, page_preview_card, footer) to keep the look consistent.
+This file is the visual design system: every page calls inject_global_css()
+once at the top, then uses these HTML-based helpers (page_header, kpi_row,
+insight_box, section_label, html_table, sidebar_brand, footer) instead of
+Streamlit's native st.metric/st.dataframe chrome.
 
 Backend logic lives elsewhere — nothing in this file touches Snowflake, dbt,
 Airflow, or any calculation.
@@ -11,158 +12,97 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pandas as pd
 import streamlit as st
 
-# --- Palette ---------------------------------------------------------------
-TTC_RED          = "#DA291C"
-TTC_RED_GLOW     = "rgba(218, 41, 28, 0.22)"
-TTC_RED_TINT     = "rgba(218, 41, 28, 0.10)"
-TTC_RED_BORDER   = "rgba(218, 41, 28, 0.42)"
+# --- Design tokens -----------------------------------------------------
+BG           = "#0B0F14"
+CARD         = "#111827"
+CARD_BORDER  = "#1F2937"
+ACCENT       = "#DA291C"
+ACCENT_DIM   = "#7F1D1D"
+TEXT_1       = "#F9FAFB"
+TEXT_2       = "#9CA3AF"
+TEXT_3       = "#4B5563"
+GREEN        = "#22C55E"
+GREEN_DIM    = "#14532D"
+AMBER        = "#F59E0B"
 
-BG               = "#0B0F14"
-SIDEBAR_BG       = "#0D1117"
-CARD_BG          = "#151922"
-ELEVATED_BG      = "#1A1F2B"
-BORDER           = "#1E2530"
+SIDEBAR_BG   = "#0D1117"
+ROW_ALT      = "#0D1116"
 
-SUCCESS          = "#22C55E"
-SUCCESS_BG       = "rgba(34, 197, 94, 0.10)"
-SUCCESS_BORDER   = "rgba(34, 197, 94, 0.40)"
-
-TEXT_PRIMARY     = "#F9FAFB"
-TEXT_SECONDARY   = "#A7ADB7"
-TEXT_MUTED       = "#6B7280"
-
-PLOTLY_TEMPLATE  = "plotly_dark"
+PLOTLY_TEMPLATE = "plotly_dark"
 
 
-# --- Global CSS ------------------------------------------------------------
+# --- Global CSS ----------------------------------------------------------
 def inject_global_css() -> None:
     """Inject the base theme. Call once at the top of every page."""
     st.markdown(
         f"""
         <style>
-        :root {{
-            --ttc-red:        {TTC_RED};
-            --ttc-bg:         {BG};
-            --ttc-sidebar:    {SIDEBAR_BG};
-            --ttc-card:       {CARD_BG};
-            --ttc-elevated:   {ELEVATED_BG};
-            --ttc-border:     {BORDER};
-            --ttc-text:       {TEXT_PRIMARY};
-            --ttc-text-sec:   {TEXT_SECONDARY};
-            --ttc-text-muted: {TEXT_MUTED};
-            --ttc-success:    {SUCCESS};
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        html, body, [class*="css"] {{
+            font-family: 'Inter', sans-serif !important;
+            background-color: {BG} !important;
+        }}
+        .stApp {{ background-color: {BG}; }}
+        #MainMenu, footer, header {{ visibility: hidden; }}
+        .block-container {{
+            padding: 2rem 2.5rem !important;
+            max-width: 1400px;
         }}
 
-        /* Page chrome */
-        .stApp {{ background-color: var(--ttc-bg); color: var(--ttc-text); }}
-        header[data-testid="stHeader"] {{ background: transparent; }}
-        #MainMenu {{ visibility: hidden; }}
+        /* Remove Streamlit widget chrome */
+        [data-testid="stVerticalBlock"] > div {{ gap: 0; }}
+        div[data-testid="metric-container"] {{ display: none; }}
 
         /* Sidebar */
         [data-testid="stSidebar"] {{
-            background-color: var(--ttc-sidebar);
-            border-right: 1px solid var(--ttc-border);
+            background: {SIDEBAR_BG} !important;
+            border-right: 1px solid {CARD_BORDER};
         }}
 
-        /* Main content width + top padding */
-        .main .block-container {{
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-            max-width: 1320px;
-        }}
-
-        /* Headings */
-        h1, h2, h3, h4 {{
-            color: var(--ttc-text);
-            letter-spacing: -0.01em;
-        }}
-        h3 {{
-            font-size: 1.15rem; font-weight: 600;
-            margin-top: 1.75rem; margin-bottom: 0.75rem;
-        }}
-
-        /* Native st.metric -> card look (used as a fallback if any page
-           still uses st.metric directly) */
-        [data-testid="stMetric"] {{
-            background-color: var(--ttc-card);
-            border: 1px solid var(--ttc-border);
-            border-radius: 14px;
-            padding: 1rem 1.2rem;
-        }}
-
-        /* Plotly chart wrapper */
-        div[data-testid="stPlotlyChart"] {{
-            background-color: var(--ttc-card);
-            border: 1px solid var(--ttc-border);
-            border-radius: 14px;
-            padding: 0.85rem 0.5rem 0.5rem 0.5rem;
-            margin-top: 0.25rem;
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
-        }}
-
-        /* DataFrame */
-        [data-testid="stDataFrame"] {{
-            border-radius: 14px;
-            overflow: hidden;
-            border: 1px solid var(--ttc-border);
-        }}
-
-        /* Expanders */
-        [data-testid="stExpander"] {{
-            background-color: var(--ttc-card);
-            border: 1px solid var(--ttc-border) !important;
-            border-radius: 12px;
-        }}
-
-        /* Slider thumb -> TTC red */
-        [data-baseweb="slider"] [role="slider"] {{
-            background-color: var(--ttc-red) !important;
-        }}
-
-        /* Selectbox background */
+        /* Selectbox */
         [data-testid="stSelectbox"] > div > div {{
-            background-color: var(--ttc-card);
-            border-color: var(--ttc-border);
+            background: {CARD} !important;
+            border: 1px solid {CARD_BORDER} !important;
+            border-radius: 8px !important;
+            color: {TEXT_1} !important;
         }}
 
-        /* Selectbox + caption text color tweaks */
-        [data-testid="stCaptionContainer"], .stCaption {{
-            color: var(--ttc-text-muted) !important;
-        }}
+        /* Slider */
+        [data-testid="stSlider"] > div {{ padding: 0; }}
+        .stSlider [data-baseweb="slider"] {{ padding-top: 1rem; }}
 
-        /* Hide Streamlit footer */
-        footer {{ visibility: hidden; }}
+        /* Expander */
+        [data-testid="stExpander"] {{
+            background: {CARD} !important;
+            border: 1px solid {CARD_BORDER} !important;
+            border-radius: 8px !important;
+        }}
         </style>
         """,
         unsafe_allow_html=True,
     )
 
 
-# --- Sidebar branding ------------------------------------------------------
-def sidebar_branding() -> None:
-    """Polished product-card branding block at the top of the sidebar."""
+# --- Sidebar brand ---------------------------------------------------------
+def sidebar_brand() -> None:
     st.sidebar.markdown(
         f"""
-        <div style='
-            background-color: {ELEVATED_BG};
-            border: 1px solid {BORDER};
-            border-left: 3px solid {TTC_RED};
-            border-radius: 12px;
-            padding: 0.85rem 0.95rem;
-            margin: 0.25rem 0 1.1rem 0;
-        '>
-            <div style='color: {TTC_RED}; font-weight: 700; font-size: 1.05rem;
-                        letter-spacing: -0.01em; line-height: 1.15;'>
-                TTC Reliability Monitor
+        <div style="padding:1.25rem 1rem 1rem;border-bottom:1px solid {CARD_BORDER};margin-bottom:0.5rem">
+            <div style="font-size:1rem;font-weight:700;color:{ACCENT};letter-spacing:-0.01em">
+                TTC Analytics
             </div>
-            <div style='color: {TEXT_SECONDARY}; font-size: 0.86rem; margin-top: 0.2rem;'>
-                Live transit insights
-            </div>
-            <div style='color: {TEXT_MUTED}; font-size: 0.74rem; margin-top: 0.55rem;
-                        letter-spacing: 0.04em; text-transform: uppercase;'>
-                Airflow · dbt · Snowflake
+            <div style="font-size:0.72rem;color:#6B7280;margin-top:2px">Live Pipeline Dashboard</div>
+            <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+                <span style="font-size:0.6rem;color:{TEXT_3};background:{CARD};border:1px solid {CARD_BORDER};
+                             border-radius:4px;padding:2px 6px;letter-spacing:0.06em">AIRFLOW</span>
+                <span style="font-size:0.6rem;color:{TEXT_3};background:{CARD};border:1px solid {CARD_BORDER};
+                             border-radius:4px;padding:2px 6px;letter-spacing:0.06em">DBT</span>
+                <span style="font-size:0.6rem;color:{TEXT_3};background:{CARD};border:1px solid {CARD_BORDER};
+                             border-radius:4px;padding:2px 6px;letter-spacing:0.06em">SNOWFLAKE</span>
             </div>
         </div>
         """,
@@ -170,274 +110,126 @@ def sidebar_branding() -> None:
     )
 
 
-# --- Hero ------------------------------------------------------------------
-def hero(title: str, subtitle: str, footnote: str = "") -> None:
-    """Big rounded hero card for the landing page."""
-    foot = (
-        f"<div style='color: {TEXT_MUTED}; font-size: 0.92rem; margin-top: 0.95rem;"
-        f"line-height: 1.5;'>{footnote}</div>"
-        if footnote else ""
-    )
-    st.markdown(
-        f"""
-        <div style='
-            background: linear-gradient(135deg, {ELEVATED_BG} 0%, {CARD_BG} 100%);
-            border: 1px solid {BORDER};
-            border-radius: 18px;
-            padding: 1.4rem 1.9rem;
-            margin: 0.25rem 0 1.5rem 0;
-            position: relative;
-            overflow: hidden;
-        '>
-            <div style='position: absolute; top: 0; left: 0; right: 0; height: 3px;
-                        background: linear-gradient(90deg, {TTC_RED} 0%,
-                        rgba(218,41,28,0) 70%);'></div>
-            <div style='color: {TTC_RED}; font-size: 2.05rem; font-weight: 700;
-                        letter-spacing: -0.025em; line-height: 1.1;'>
-                {title}
-            </div>
-            <div style='color: {TEXT_SECONDARY}; font-size: 1.05rem; margin-top: 0.7rem;
-                        line-height: 1.55; max-width: 820px;'>
-                {subtitle}
-            </div>
-            {foot}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-# --- Page header for sub-pages --------------------------------------------
-def page_header(title: str, emoji: str, subtitle: str) -> None:
-    """Sub-page header. `emoji` is optional — pass "" for an emoji-free title."""
-    prefix = f"{emoji} " if emoji else ""
-    st.markdown(
-        f"""
-        <div style='margin: 0.25rem 0 1.25rem 0;'>
-            <div style='color: {TTC_RED}; font-size: 1.75rem; font-weight: 700;
-                        letter-spacing: -0.02em; line-height: 1.15;'>
-                {prefix}{title}
-            </div>
-            <div style='color: {TEXT_SECONDARY}; font-size: 1rem; margin-top: 0.45rem;
-                        line-height: 1.55; max-width: 800px;'>
-                {subtitle}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-# --- KPI cards -------------------------------------------------------------
-def kpi_card(label: str, value: str, sub: str = "", sub_color: str = "muted") -> str:
-    """Return HTML for one KPI card. Use inside `col.markdown(..., unsafe_allow_html=True)`.
-
-    sub_color: 'muted' (default), 'success' (green), 'danger' (red).
-    """
-    color_map = {
-        # Slightly brighter than TEXT_MUTED so the supporting line is readable
-        # against the dark card background — still muted, just not too dim.
-        "muted":   "#909AA8",
-        "success": SUCCESS,
-        "danger":  TTC_RED,
-    }
-    sub_clr = color_map.get(sub_color, TEXT_MUTED)
+# --- Page header -----------------------------------------------------------
+def page_header(title: str, subtitle: str = "") -> None:
     sub_html = (
-        f"<div style='color: {sub_clr}; font-size: 0.82rem; margin-top: 0.5rem;'>{sub}</div>"
-        if sub else ""
+        f'<div style="font-size:0.9rem;color:{TEXT_2};margin-top:4px">{subtitle}</div>'
+        if subtitle else ""
     )
-    return f"""
-    <div style='
-        background-color: {CARD_BG};
-        border: 1px solid {BORDER};
-        border-radius: 14px;
-        padding: 1rem 1.2rem;
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-    '>
-        <div style='position: absolute; top: 0; bottom: 0; left: 0; width: 3px;
-                    background-color: {TTC_RED};'></div>
-        <div style='color: {TEXT_SECONDARY}; font-size: 0.82rem; font-weight: 500;
-                    letter-spacing: 0.01em;'>{label}</div>
-        <div style='color: {TEXT_PRIMARY}; font-size: 1.55rem; font-weight: 700;
-                    margin-top: 0.4rem; letter-spacing: -0.02em; line-height: 1.15;
-                    word-break: break-word;'>{value}</div>
-        {sub_html}
-    </div>
-    """
-
-
-def kpi_card_custom(label: str, value_html: str) -> str:
-    """Like kpi_card but lets you pass arbitrary HTML for the value area
-    (e.g. a row of pill badges instead of a single number)."""
-    return f"""
-    <div style='
-        background-color: {CARD_BG};
-        border: 1px solid {BORDER};
-        border-radius: 14px;
-        padding: 1rem 1.2rem;
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-    '>
-        <div style='position: absolute; top: 0; bottom: 0; left: 0; width: 3px;
-                    background-color: {TTC_RED};'></div>
-        <div style='color: {TEXT_SECONDARY}; font-size: 0.82rem; font-weight: 500;'>{label}</div>
-        <div style='margin-top: 0.5rem;'>{value_html}</div>
-    </div>
-    """
-
-
-# --- Pill badges -----------------------------------------------------------
-def pill(text: str, variant: str = "default") -> str:
-    """Single pill badge. Variants: 'default' (gray), 'success' (green dot), 'accent' (red)."""
-    if variant == "success":
-        bg, border, color = SUCCESS_BG, SUCCESS_BORDER, TEXT_PRIMARY
-        dot = (f"<span style='display:inline-block;width:0.55rem;height:0.55rem;"
-               f"border-radius:999px;background-color:{SUCCESS};margin-right:0.5rem;"
-               f"vertical-align:middle;'></span>")
-    elif variant == "accent":
-        bg, border, color, dot = TTC_RED_TINT, TTC_RED_BORDER, TEXT_PRIMARY, ""
-    else:
-        bg, border, color, dot = ELEVATED_BG, BORDER, TEXT_SECONDARY, ""
-    return (
-        f"<span style='display:inline-block;padding:0.4rem 0.85rem;"
-        f"margin:0.2rem 0.4rem 0.2rem 0;border-radius:999px;background-color:{bg};"
-        f"border:1px solid {border};color:{color};font-size:0.88rem;"
-        f"white-space:nowrap;line-height:1.3;font-weight:500;vertical-align:middle;'>"
-        f"{dot}{text}</span>"
-    )
-
-
-def pill_row(pills_html: list[str]) -> None:
     st.markdown(
-        f"<div style='margin: 0.1rem 0 1.5rem 0;'>{''.join(pills_html)}</div>",
+        f'<div style="margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid {CARD_BORDER}">'
+        f'<div style="font-size:1.75rem;font-weight:700;color:{ACCENT}">{title}</div>'
+        f'{sub_html}</div>',
         unsafe_allow_html=True,
     )
 
 
-# --- Insight callout -------------------------------------------------------
-def insight_box(html_text: str) -> None:
-    """TTC-red bordered insight callout for at-a-glance summaries."""
+# --- KPI row -----------------------------------------------------------
+def kpi_row(cards: list[dict]) -> None:
+    """cards = [{"label": str, "value": str, "sub": str, "accent": bool}]
+
+    Renders a full-width responsive grid of KPI cards. `sub` may contain
+    inline HTML (e.g. a colored <span>) for success/danger emphasis.
+
+    Built as single-line HTML per card — a blank line inside a block passed
+    to st.markdown(unsafe_allow_html=True) ends the raw-HTML block early and
+    dumps everything after it onto the page as literal text.
+    """
+    cards_html = ""
+    for c in cards:
+        border = ACCENT if c.get("accent") else CARD_BORDER
+        sub = (
+            f'<div style="font-size:0.72rem;color:{TEXT_2};margin-top:4px">{c["sub"]}</div>'
+            if c.get("sub") else ""
+        )
+        cards_html += (
+            f'<div style="background:{CARD};border:1px solid {border};border-radius:10px;'
+            f'padding:1.25rem 1.5rem;flex:1;min-width:0;">'
+            f'<div style="font-size:0.7rem;font-weight:600;color:#6B7280;'
+            f'text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">{c["label"]}</div>'
+            f'<div style="font-size:1.75rem;font-weight:700;color:{TEXT_1};line-height:1.1">{c["value"]}</div>'
+            f'{sub}</div>'
+        )
+    st.markdown(
+        f'<div style="display:flex;gap:1rem;margin:1rem 0 1.5rem 0">{cards_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+# --- Insight callout ---------------------------------------------------
+def insight_box(text: str) -> None:
     st.markdown(
         f"""
-        <div style='
-            background-color: {CARD_BG};
-            border: 1px solid {BORDER};
-            border-left: 3px solid {TTC_RED};
-            border-radius: 12px;
-            padding: 0.95rem 1.15rem;
-            margin: 0.75rem 0 1.25rem 0;
-            color: {TEXT_PRIMARY};
-            line-height: 1.55;
-            font-size: 0.95rem;
-        '>{html_text}</div>
+        <div style="background:{CARD};border-left:3px solid {ACCENT};border-radius:0 8px 8px 0;
+                    padding:0.9rem 1.2rem;margin:1rem 0;font-size:0.875rem;color:{TEXT_1}">
+            {text}
+        </div>
         """,
         unsafe_allow_html=True,
     )
 
 
-# --- Page preview cards (homepage) -----------------------------------------
-def page_preview_card(emoji: str, title: str, body: str) -> str:
-    """Preview card. `emoji` is optional — pass "" for an emoji-free card."""
-    emoji_html = (
-        f"<span style='font-size: 1.15rem; margin-right: 0.4rem;'>{emoji}</span>"
-        if emoji else ""
-    )
-    return f"""
-    <div style='
-        background-color: {CARD_BG};
-        border: 1px solid {BORDER};
-        border-radius: 14px;
-        padding: 1.2rem 1.3rem;
-        height: 100%;
-        min-height: 160px;
-    '>
-        <div style='color: {TEXT_PRIMARY}; font-weight: 600; font-size: 1.02rem;'>
-            {emoji_html}{title}
+# --- Section label -------------------------------------------------------
+def section_label(text: str) -> None:
+    st.markdown(
+        f"""
+        <div style="font-size:0.7rem;font-weight:600;color:{TEXT_3};text-transform:uppercase;
+                    letter-spacing:0.1em;margin:1.5rem 0 0.75rem 0;padding-bottom:0.5rem;
+                    border-bottom:1px solid {CARD_BORDER}">
+            {text}
         </div>
-        <div style='color: {TEXT_SECONDARY}; font-size: 0.92rem; margin-top: 0.6rem;
-                    line-height: 1.55;'>{body}</div>
-    </div>
-    """
-
-
-# --- Architecture step + arrow --------------------------------------------
-def arch_step(prefix: str, label: str, sub: str = "") -> str:
-    """Step card for the architecture flow.
-
-    `prefix` can be:
-      - "" — no prefix
-      - a 2-digit step number ("01"..."08") — rendered as a small TTC-red badge
-      - any other string (emoji etc.) — rendered as-is before the label
-    """
-    if not prefix:
-        prefix_html = ""
-    elif prefix.isdigit():
-        prefix_html = (
-            f"<span style='color:{TTC_RED};font-weight:700;font-size:0.78rem;"
-            f"letter-spacing:0.12em;margin-right:0.85rem;"
-            f"vertical-align:0.08em;'>{prefix}</span>"
-        )
-    else:
-        prefix_html = f"{prefix} "
-    sub_html = (
-        f"<div style='color:#909AA8;font-size:0.85rem;margin-top:0.3rem;"
-        f"word-break:keep-all;overflow-wrap:normal;'>{sub}</div>"
-        if sub else ""
-    )
-    return f"""
-    <div style='background-color:{CARD_BG};border:1px solid {BORDER};
-                border-left:3px solid {TTC_RED};border-radius:12px;
-                padding:0.95rem 1.15rem;margin:0.4rem 0;'>
-        <div style='color:{TEXT_PRIMARY};font-size:1rem;font-weight:600;
-                    word-break:keep-all;overflow-wrap:normal;'>
-            {prefix_html}{label}
-        </div>{sub_html}</div>
-    """
-
-
-def arch_arrow(note: str = "") -> str:
-    note_html = (
-        f"<span style='color:{TEXT_MUTED};font-size:0.82rem;margin-left:0.55rem;'>{note}</span>"
-        if note else ""
-    )
-    return (
-        f"<div style='text-align:center;color:{TTC_RED};font-size:1.3rem;"
-        f"line-height:1;margin:0.1rem 0;'>↓{note_html}</div>"
+        """,
+        unsafe_allow_html=True,
     )
 
 
-# --- Horizontal flow (homepage pipeline) ----------------------------------
-def horizontal_flow(steps: list[tuple[str, str, str]]) -> None:
-    """Render a horizontal stack of card-steps separated by arrows.
-    Each step is (emoji, label, sub). Pass "" for emoji to render an
-    emoji-free step (label-only)."""
-    parts: list[str] = []
-    for i, (emoji, label, sub) in enumerate(steps):
-        emoji_html = (
-            f"<div style='font-size:1.3rem;margin-bottom:0.35rem;'>{emoji}</div>"
-            if emoji else ""
-        )
-        parts.append(
-            f"<div style='flex:1 1 0;min-width:120px;background-color:{CARD_BG};"
-            f"border:1px solid {BORDER};border-radius:12px;padding:1rem 0.8rem;"
-            f"text-align:center;'>"
-            f"{emoji_html}"
-            f"<div style='color:{TEXT_PRIMARY};font-weight:600;font-size:0.95rem;'>"
-            f"{label}</div>"
-            f"<div style='color:#909AA8;font-size:0.76rem;margin-top:0.3rem;"
-            f"letter-spacing:0.02em;'>{sub}</div></div>"
-        )
-        if i < len(steps) - 1:
-            parts.append(
-                f"<div style='color:{TTC_RED};font-size:1.25rem;align-self:center;"
-                f"padding:0 0.15rem;flex:0 0 auto;'>→</div>"
+# --- HTML table --------------------------------------------------------
+def html_table(df: pd.DataFrame, progress_col: str | None = None) -> None:
+    """Render a DataFrame as a styled HTML table.
+
+    Every column is rendered as-is (format values before calling this).
+    `progress_col`, if given, must hold 0-100 floats and renders as an
+    inline progress bar instead of plain text.
+    """
+    header_cells = "".join(
+        f'<th style="text-align:left;padding:0.65rem 1rem;font-size:0.7rem;font-weight:600;'
+        f'color:{TEXT_2};text-transform:uppercase;letter-spacing:0.06em;'
+        f'border-bottom:1px solid {CARD_BORDER};white-space:nowrap">{col}</th>'
+        for col in df.columns
+    )
+
+    rows = []
+    for i, (_, row) in enumerate(df.iterrows()):
+        row_bg = CARD if i % 2 == 0 else ROW_ALT
+        cells = []
+        for col in df.columns:
+            val = row[col]
+            if col == progress_col:
+                pct = float(val)
+                cell = f"""
+                <div style="display:flex;align-items:center;gap:8px">
+                    <div style="flex:1;background:{CARD_BORDER};border-radius:99px;height:4px">
+                        <div style="width:{pct}%;background:{ACCENT};border-radius:99px;height:4px"></div>
+                    </div>
+                    <span style="font-size:0.8rem;color:{TEXT_1};white-space:nowrap">{pct:.1f}%</span>
+                </div>
+                """
+            else:
+                cell = f'<span style="font-size:0.85rem;color:{TEXT_1};white-space:nowrap">{val}</span>'
+            cells.append(
+                f'<td style="padding:0.65rem 1rem;border-bottom:1px solid {CARD_BORDER}">{cell}</td>'
             )
+        rows.append(f'<tr style="background:{row_bg}">{"".join(cells)}</tr>')
+
     st.markdown(
-        f"<div style='display:flex;flex-wrap:wrap;gap:0.4rem;align-items:stretch;"
-        f"margin:0.25rem 0 1.5rem 0;'>{''.join(parts)}</div>",
+        f"""
+        <div style="overflow-x:auto;border:1px solid {CARD_BORDER};border-radius:10px">
+            <table style="width:100%;border-collapse:collapse">
+                <thead><tr style="background:{CARD_BORDER}">{header_cells}</tr></thead>
+                <tbody>{"".join(rows)}</tbody>
+            </table>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
@@ -460,12 +252,12 @@ def format_relative(dt) -> str:
 def footer() -> None:
     st.markdown(
         f"""
-        <hr style='margin-top: 2.5rem; border: none; border-top: 1px solid {BORDER};'>
-        <p style='color: {TEXT_MUTED}; font-size: 0.82rem; margin-top: 0.85rem;'>
+        <hr style="margin-top: 2.5rem; border: none; border-top: 1px solid {CARD_BORDER};">
+        <p style="color: {TEXT_3}; font-size: 0.82rem; margin-top: 0.85rem;">
             Unofficial analytics project · Not affiliated with TTC ·
             Built by Riyasat Zaman · Airflow + dbt + Snowflake + Streamlit ·
-            <a href='https://github.com/riyasatzaman/ttc-transit-pipeline'
-               style='color: {TTC_RED}; text-decoration: none;'>Source on GitHub</a>
+            <a href="https://github.com/riyasatzaman/ttc-transit-pipeline"
+               style="color: {ACCENT}; text-decoration: none;">Source on GitHub</a>
         </p>
         """,
         unsafe_allow_html=True,

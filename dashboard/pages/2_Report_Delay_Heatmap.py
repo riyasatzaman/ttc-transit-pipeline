@@ -13,17 +13,20 @@ import streamlit as st
 
 from utils.snowflake_connector import query_df
 from utils.ui import (
-    BORDER,
-    CARD_BG,
+    ACCENT,
+    ACCENT_DIM,
+    BG,
+    CARD,
+    CARD_BORDER,
+    GREEN,
     PLOTLY_TEMPLATE,
-    TEXT_PRIMARY,
-    TTC_RED,
+    TEXT_1,
     footer,
     inject_global_css,
     insight_box,
-    kpi_card,
+    kpi_row,
     page_header,
-    sidebar_branding,
+    sidebar_brand,
 )
 
 st.set_page_config(
@@ -33,11 +36,10 @@ st.set_page_config(
 )
 
 inject_global_css()
-sidebar_branding()
+sidebar_brand()
 
 page_header(
     "Vehicle Report Delay Heatmap",
-    "",
     "Each cell shows the average delay in vehicle location reports for the "
     "selected route. Redder cells mean vehicles were reporting less recently.",
 )
@@ -126,20 +128,25 @@ best_label_hm = (
 worst_val = float(worst_cell['AVG_DELAY_S'])
 best_val  = float(best_cell['AVG_DELAY_S'])
 
-c1, c2, c3, c4 = st.columns(4)
-c1.markdown(kpi_card("Observations", f"{total:,}", "hour × day samples"), unsafe_allow_html=True)
-c2.markdown(
-    kpi_card("Highest report delay", worst_label, f"avg {worst_val:.1f}s", sub_color="danger"),
-    unsafe_allow_html=True,
-)
-c3.markdown(
-    kpi_card("Lowest report delay", best_label_hm, f"avg {best_val:.1f}s", sub_color="success"),
-    unsafe_allow_html=True,
-)
-c4.markdown(
-    kpi_card("Coverage", f"{hours_observed} / 168", f"{coverage_pct:.1f}% of all cells observed"),
-    unsafe_allow_html=True,
-)
+kpi_row([
+    {"label": "Observations", "value": f"{total:,}", "sub": "hour × day samples"},
+    {
+        "label": "Highest report delay",
+        "value": worst_label,
+        "sub": f'<span style="color:{ACCENT}">avg {worst_val:.1f}s</span>',
+        "accent": True,
+    },
+    {
+        "label": "Lowest report delay",
+        "value": best_label_hm,
+        "sub": f'<span style="color:{GREEN}">avg {best_val:.1f}s</span>',
+    },
+    {
+        "label": "Coverage",
+        "value": f"{hours_observed} / 168",
+        "sub": f"{coverage_pct:.1f}% of all cells observed",
+    },
+])
 
 insight_box(
     f"<strong>Highest report delay:</strong> {worst_label} "
@@ -152,17 +159,17 @@ fig = px.imshow(
     pivot,
     labels=dict(x="Hour of day", y="Day of week", color="Avg Report Delay (s)"),
     aspect="auto",
-    color_continuous_scale=[[0, BORDER], [1, TTC_RED]],
+    color_continuous_scale=[[0, CARD_BORDER], [0.5, ACCENT_DIM], [1, ACCENT]],
     template=PLOTLY_TEMPLATE,
 )
 fig.update_layout(
     height=380,
     margin=dict(l=40, r=40, t=10, b=40),
-    xaxis=dict(tickfont=dict(size=11)),
-    yaxis=dict(tickfont=dict(size=12)),
-    paper_bgcolor=CARD_BG,
-    plot_bgcolor=CARD_BG,
-    font_color=TEXT_PRIMARY,
+    xaxis=dict(tickfont=dict(size=11), gridcolor=CARD_BORDER),
+    yaxis=dict(tickfont=dict(size=12), gridcolor=CARD_BORDER),
+    paper_bgcolor=BG,
+    plot_bgcolor=CARD,
+    font_color=TEXT_1,
 )
 st.plotly_chart(fig, use_container_width=True)
 

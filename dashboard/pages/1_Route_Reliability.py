@@ -13,12 +13,15 @@ import streamlit as st
 
 from utils.snowflake_connector import query_df
 from utils.ui import (
+    ACCENT,
+    GREEN,
     footer,
+    html_table,
     inject_global_css,
     insight_box,
-    kpi_card,
+    kpi_row,
     page_header,
-    sidebar_branding,
+    sidebar_brand,
 )
 
 st.set_page_config(
@@ -28,13 +31,12 @@ st.set_page_config(
 )
 
 inject_global_css()
-sidebar_branding()
+sidebar_brand()
 
 page_header(
     "Route Reliability Leaderboard",
-    "",
-    "Routes are sorted by highest report delay so inconsistent live "
-    "reporting rises to the top.",
+    "Routes sorted by highest report delay — inconsistent live reporting "
+    "rises to the top.",
 )
 
 min_obs = st.slider(
@@ -79,27 +81,21 @@ best_row = df.iloc[-1]      # df is sorted ascending by pct_on_time
 worst_row = df.iloc[0]
 avg_on_time = float(df["PCT_ON_TIME"].mean())
 
-c1, c2, c3, c4 = st.columns(4)
-c1.markdown(kpi_card("Routes shown",          f"{len(df):,}"),                unsafe_allow_html=True)
-c2.markdown(kpi_card("Avg recently reported", f"{avg_on_time:.2f}%"),         unsafe_allow_html=True)
-c3.markdown(
-    kpi_card(
-        "Most Recently Reported",
-        f"{best_row['ROUTE_ID']} · {best_row['ROUTE_NAME']}",
-        f"↑ {best_row['PCT_ON_TIME']:.2f}% recent",
-        sub_color="success",
-    ),
-    unsafe_allow_html=True,
-)
-c4.markdown(
-    kpi_card(
-        "Highest Report Delay",
-        f"{worst_row['ROUTE_ID']} · {worst_row['ROUTE_NAME']}",
-        f"avg {float(worst_row['AVG_DELAY_PROXY_SECONDS']):.1f}s",
-        sub_color="danger",
-    ),
-    unsafe_allow_html=True,
-)
+kpi_row([
+    {"label": "Routes shown",          "value": f"{len(df):,}"},
+    {"label": "Avg recently reported", "value": f"{avg_on_time:.2f}%"},
+    {
+        "label": "Most Recently Reported",
+        "value": f"{best_row['ROUTE_ID']} · {best_row['ROUTE_NAME']}",
+        "sub": f'<span style="color:{GREEN}">↑ {best_row["PCT_ON_TIME"]:.2f}% recent</span>',
+    },
+    {
+        "label": "Highest Report Delay",
+        "value": f"{worst_row['ROUTE_ID']} · {worst_row['ROUTE_NAME']}",
+        "sub": f'<span style="color:{ACCENT}">avg {float(worst_row["AVG_DELAY_PROXY_SECONDS"]):.1f}s</span>',
+        "accent": True,
+    },
+])
 
 insight_box(
     f"<strong>{best_row['ROUTE_ID']} · {best_row['ROUTE_NAME']}</strong> "
@@ -110,38 +106,19 @@ insight_box(
     f"<strong>{float(worst_row['AVG_DELAY_PROXY_SECONDS']):.1f}s</strong>."
 )
 
+display_df = pd.DataFrame({
+    "Route":                  df["ROUTE_ID"],
+    "Name":                   df["ROUTE_NAME"],
+    "Observations":           df["TOTAL_OBSERVATIONS"].map("{:,.0f}".format),
+    "Vehicles":               df["DISTINCT_VEHICLES"].map("{:,.0f}".format),
+    "Recently Reported %":    df["PCT_ON_TIME"],
+    "Stale Reports %":        df["PCT_DELAYED"].map("{:.2f}%".format),
+    "Avg Report Delay (s)":   df["AVG_DELAY_PROXY_SECONDS"].map("{:.1f}".format),
+    "Avg speed (km/h)":       df["AVG_SPEED_KMH"].map("{:.1f}".format),
+    "Last Seen":              df["LAST_OBSERVED_AT"].dt.strftime("%Y-%m-%d %H:%M UTC"),
+})
+html_table(display_df, progress_col="Recently Reported %")
 
-display_df = df.rename(
-    columns={
-        "ROUTE_ID":                "Route",
-        "ROUTE_NAME":              "Name",
-        "TOTAL_OBSERVATIONS":      "Observations",
-        "DISTINCT_VEHICLES":       "Vehicles",
-        "PCT_ON_TIME":             "Recently Reported %",
-        "PCT_DELAYED":             "Stale Reports %",
-        "AVG_DELAY_PROXY_SECONDS": "Avg Report Delay (s)",
-        "AVG_SPEED_KMH":           "Avg speed (km/h)",
-        "LAST_OBSERVED_AT":        "Last Seen",
-    }
-)
-
-st.dataframe(
-    display_df,
-    use_container_width=True,
-    height=520,
-    hide_index=True,
-    column_config={
-        "Recently Reported %": st.column_config.ProgressColumn(
-            "Recently Reported %", format="%.1f%%", min_value=0, max_value=100,
-        ),
-        "Stale Reports %":      st.column_config.NumberColumn("Stale Reports %", format="%.2f%%"),
-        "Avg Report Delay (s)": st.column_config.NumberColumn("Avg Report Delay (s)", format="%.1f"),
-        "Avg speed (km/h)":     st.column_config.NumberColumn("Avg speed (km/h)", format="%.1f"),
-        "Observations":         st.column_config.NumberColumn("Observations", format="%d"),
-        "Vehicles":             st.column_config.NumberColumn("Vehicles", format="%d"),
-        "Last Seen":            st.column_config.DatetimeColumn("Last Seen", format="YYYY-MM-DD HH:mm [UTC]"),
-    },
-)
 st.caption(
     f"Showing {len(df):,} routes with ≥ {min_obs:,} observations. "
     "**Recently Reported %** is the share of observations where a vehicle "

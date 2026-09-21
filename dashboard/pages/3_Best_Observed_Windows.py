@@ -16,21 +16,18 @@ import streamlit as st
 
 from utils.snowflake_connector import query_df
 from utils.ui import (
-    CARD_BG,
+    ACCENT,
+    BG,
+    CARD,
+    GREEN,
     PLOTLY_TEMPLATE,
-    SUCCESS,
-    SUCCESS_BG,
-    SUCCESS_BORDER,
-    TEXT_PRIMARY,
-    TTC_RED,
+    TEXT_1,
     footer,
     inject_global_css,
     insight_box,
-    kpi_card,
-    kpi_card_custom,
+    kpi_row,
     page_header,
-    pill,
-    sidebar_branding,
+    sidebar_brand,
 )
 
 st.set_page_config(
@@ -40,11 +37,10 @@ st.set_page_config(
 )
 
 inject_global_css()
-sidebar_branding()
+sidebar_brand()
 
 page_header(
     "Best Observed Windows",
-    "",
     "Highlights the hours when vehicles on this route reported their "
     "locations most recently.",
 )
@@ -146,22 +142,11 @@ best_label = (
     if ranges
     else "—"
 )
-# Same windows but rendered as inline pill badges for the KPI tile.
-# Green-tinted to signal "best / good" (not red, which would be conflicting).
-best_label_pills = (
-    "".join(
-        pill(f"{_format_hour(a)}–{_format_hour((b + 1) % 24)}", variant="success")
-        for a, b in ranges
-    )
-    if ranges
-    else "<span style='color:#737B88;'>—</span>"
-)
-
-c1, c2, c3 = st.columns([1, 1, 2])
-c1.markdown(kpi_card("Observations",   f"{total_obs:,}",          "vehicle samples"), unsafe_allow_html=True)
-c2.markdown(kpi_card("Hours observed", f"{hours_observed} / 24",  "hour coverage"),   unsafe_allow_html=True)
-# c3 uses kpi_card_custom because the value is a row of pill badges, not text.
-c3.markdown(kpi_card_custom("Best windows", best_label_pills), unsafe_allow_html=True)
+kpi_row([
+    {"label": "Observations",   "value": f"{total_obs:,}",         "sub": "vehicle samples"},
+    {"label": "Hours observed", "value": f"{hours_observed} / 24", "sub": "hour coverage"},
+    {"label": "Best windows",   "value": best_label},
+])
 
 if ranges:
     insight_box(
@@ -175,7 +160,7 @@ fig = px.bar(
     x="HOUR_OF_DAY",
     y="AVG_DELAY_S",
     color="is_best",
-    color_discrete_map={True: SUCCESS, False: TTC_RED},
+    color_discrete_map={True: GREEN, False: ACCENT},
     labels={
         "HOUR_OF_DAY":  "Hour of day",
         "AVG_DELAY_S":  "Avg Report Delay (s)",
@@ -193,9 +178,9 @@ fig.update_layout(
     showlegend=False,
     height=420,
     margin=dict(l=40, r=40, t=10, b=40),
-    paper_bgcolor=CARD_BG,
-    plot_bgcolor=CARD_BG,
-    font_color=TEXT_PRIMARY,
+    paper_bgcolor=BG,
+    plot_bgcolor=CARD,
+    font_color=TEXT_1,
 )
 st.plotly_chart(fig, use_container_width=True)
 

@@ -16,6 +16,7 @@ import streamlit as st
 
 from utils.snowflake_connector import query_df
 from utils.ui import (
+    CARD_BG,
     PLOTLY_TEMPLATE,
     SUCCESS,
     SUCCESS_BG,
@@ -174,7 +175,7 @@ fig = px.bar(
     x="HOUR_OF_DAY",
     y="AVG_DELAY_S",
     color="is_best",
-    color_discrete_map={True: "#1e7e34", False: TTC_RED},
+    color_discrete_map={True: SUCCESS, False: TTC_RED},
     labels={
         "HOUR_OF_DAY":  "Hour of day",
         "AVG_DELAY_S":  "Avg Report Delay (s)",
@@ -192,6 +193,9 @@ fig.update_layout(
     showlegend=False,
     height=420,
     margin=dict(l=40, r=40, t=10, b=40),
+    paper_bgcolor=CARD_BG,
+    plot_bgcolor=CARD_BG,
+    font_color=TEXT_PRIMARY,
 )
 st.plotly_chart(fig, use_container_width=True)
 

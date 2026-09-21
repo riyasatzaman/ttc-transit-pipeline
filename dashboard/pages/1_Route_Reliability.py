@@ -111,45 +111,37 @@ insight_box(
 )
 
 
-def color_pct_on_time(val: float) -> str:
-    if val >= 80:
-        return "background-color: #1e7e34; color: white;"
-    if val >= 60:
-        return "background-color: #d39e00; color: white;"
-    return "background-color: #b21f2d; color: white;"
-
-
-styled = (
-    df.rename(
-        columns={
-            "ROUTE_ID":                "Route",
-            "ROUTE_NAME":              "Name",
-            "TOTAL_OBSERVATIONS":      "Observations",
-            "DISTINCT_VEHICLES":       "Vehicles",
-            "PCT_ON_TIME":             "Recently Reported %",
-            "PCT_DELAYED":             "Stale Reports %",
-            "AVG_DELAY_PROXY_SECONDS": "Avg Report Delay (s)",
-            "AVG_SPEED_KMH":           "Avg speed (km/h)",
-            "LAST_OBSERVED_AT":        "Last Seen",
-        }
-    )
-    .style
-    .hide(axis="index")
-    .map(color_pct_on_time, subset=["Recently Reported %"])
-    .format(
-        {
-            "Recently Reported %":  "{:.2f}",
-            "Stale Reports %":      "{:.2f}",
-            "Avg Report Delay (s)": "{:.1f}",
-            "Avg speed (km/h)":     "{:.1f}",
-            "Observations":         "{:,.0f}",
-            "Vehicles":             "{:,.0f}",
-            "Last Seen":            "{:%Y-%m-%d %H:%M UTC}",
-        }
-    )
+display_df = df.rename(
+    columns={
+        "ROUTE_ID":                "Route",
+        "ROUTE_NAME":              "Name",
+        "TOTAL_OBSERVATIONS":      "Observations",
+        "DISTINCT_VEHICLES":       "Vehicles",
+        "PCT_ON_TIME":             "Recently Reported %",
+        "PCT_DELAYED":             "Stale Reports %",
+        "AVG_DELAY_PROXY_SECONDS": "Avg Report Delay (s)",
+        "AVG_SPEED_KMH":           "Avg speed (km/h)",
+        "LAST_OBSERVED_AT":        "Last Seen",
+    }
 )
 
-st.dataframe(styled, use_container_width=True, height=520)
+st.dataframe(
+    display_df,
+    use_container_width=True,
+    height=520,
+    hide_index=True,
+    column_config={
+        "Recently Reported %": st.column_config.ProgressColumn(
+            "Recently Reported %", format="%.1f%%", min_value=0, max_value=100,
+        ),
+        "Stale Reports %":      st.column_config.NumberColumn("Stale Reports %", format="%.2f%%"),
+        "Avg Report Delay (s)": st.column_config.NumberColumn("Avg Report Delay (s)", format="%.1f"),
+        "Avg speed (km/h)":     st.column_config.NumberColumn("Avg speed (km/h)", format="%.1f"),
+        "Observations":         st.column_config.NumberColumn("Observations", format="%d"),
+        "Vehicles":             st.column_config.NumberColumn("Vehicles", format="%d"),
+        "Last Seen":            st.column_config.DatetimeColumn("Last Seen", format="YYYY-MM-DD HH:mm [UTC]"),
+    },
+)
 st.caption(
     f"Showing {len(df):,} routes with ≥ {min_obs:,} observations. "
     "**Recently Reported %** is the share of observations where a vehicle "

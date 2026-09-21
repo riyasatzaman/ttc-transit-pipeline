@@ -30,7 +30,7 @@ sidebar_branding()
 
 # --- Hero -----------------------------------------------------------------
 hero(
-    "🚇 TTC Transit Reliability Monitor",
+    "TTC Transit Reliability Monitor",
     "A live analytics dashboard tracking how recently TTC vehicles report "
     "their locations across Toronto's transit network.",
     "Powered by an Airflow → Snowflake → dbt → Streamlit pipeline that "

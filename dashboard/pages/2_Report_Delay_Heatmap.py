@@ -13,7 +13,11 @@ import streamlit as st
 
 from utils.snowflake_connector import query_df
 from utils.ui import (
+    BORDER,
+    CARD_BG,
     PLOTLY_TEMPLATE,
+    TEXT_PRIMARY,
+    TTC_RED,
     footer,
     inject_global_css,
     insight_box,
@@ -148,7 +152,7 @@ fig = px.imshow(
     pivot,
     labels=dict(x="Hour of day", y="Day of week", color="Avg Report Delay (s)"),
     aspect="auto",
-    color_continuous_scale="Reds",
+    color_continuous_scale=[[0, BORDER], [1, TTC_RED]],
     template=PLOTLY_TEMPLATE,
 )
 fig.update_layout(
@@ -156,6 +160,9 @@ fig.update_layout(
     margin=dict(l=40, r=40, t=10, b=40),
     xaxis=dict(tickfont=dict(size=11)),
     yaxis=dict(tickfont=dict(size=12)),
+    paper_bgcolor=CARD_BG,
+    plot_bgcolor=CARD_BG,
+    font_color=TEXT_PRIMARY,
 )
 st.plotly_chart(fig, use_container_width=True)
 

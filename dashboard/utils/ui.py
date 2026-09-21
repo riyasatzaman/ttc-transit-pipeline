@@ -19,19 +19,19 @@ TTC_RED_GLOW     = "rgba(218, 41, 28, 0.22)"
 TTC_RED_TINT     = "rgba(218, 41, 28, 0.10)"
 TTC_RED_BORDER   = "rgba(218, 41, 28, 0.42)"
 
-BG               = "#080B10"
-SIDEBAR_BG       = "#11151D"
-CARD_BG          = "#141820"
+BG               = "#0B0F14"
+SIDEBAR_BG       = "#0D1117"
+CARD_BG          = "#151922"
 ELEVATED_BG      = "#1A1F2B"
-BORDER           = "#2A2F3A"
+BORDER           = "#1E2530"
 
 SUCCESS          = "#22C55E"
 SUCCESS_BG       = "rgba(34, 197, 94, 0.10)"
 SUCCESS_BORDER   = "rgba(34, 197, 94, 0.40)"
 
-TEXT_PRIMARY     = "#F5F7FA"
+TEXT_PRIMARY     = "#F9FAFB"
 TEXT_SECONDARY   = "#A7ADB7"
-TEXT_MUTED       = "#737B88"
+TEXT_MUTED       = "#6B7280"
 
 PLOTLY_TEMPLATE  = "plotly_dark"
 
@@ -58,6 +58,7 @@ def inject_global_css() -> None:
         /* Page chrome */
         .stApp {{ background-color: var(--ttc-bg); color: var(--ttc-text); }}
         header[data-testid="stHeader"] {{ background: transparent; }}
+        #MainMenu {{ visibility: hidden; }}
 
         /* Sidebar */
         [data-testid="stSidebar"] {{
@@ -67,8 +68,8 @@ def inject_global_css() -> None:
 
         /* Main content width + top padding */
         .main .block-container {{
-            padding-top: 1.5rem;
-            padding-bottom: 3rem;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
             max-width: 1320px;
         }}
 
@@ -120,6 +121,12 @@ def inject_global_css() -> None:
             background-color: var(--ttc-red) !important;
         }}
 
+        /* Selectbox background */
+        [data-testid="stSelectbox"] > div > div {{
+            background-color: var(--ttc-card);
+            border-color: var(--ttc-border);
+        }}
+
         /* Selectbox + caption text color tweaks */
         [data-testid="stCaptionContainer"], .stCaption {{
             color: var(--ttc-text-muted) !important;
@@ -148,7 +155,7 @@ def sidebar_branding() -> None:
         '>
             <div style='color: {TTC_RED}; font-weight: 700; font-size: 1.05rem;
                         letter-spacing: -0.01em; line-height: 1.15;'>
-                🚇 TTC Reliability Monitor
+                TTC Reliability Monitor
             </div>
             <div style='color: {TEXT_SECONDARY}; font-size: 0.86rem; margin-top: 0.2rem;'>
                 Live transit insights

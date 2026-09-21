@@ -2,7 +2,8 @@
 
 Uses the UMOIQ routeList endpoint rather than the full GTFS static feed:
 it returns just (tag, title) per route, which is all we need for the MVP.
-Short/long name parsing happens in the dbt staging model.
+The title (e.g. "7-Bathurst") is split into route_short_name/route_long_name
+here, since RAW.routes stores them as separate columns.
 
 Run locally:
     python -m ingestion.fetch_static_gtfs --dry-run    # parses, skips Snowflake
@@ -33,7 +34,7 @@ DEFAULT_ROUTES_URL = (
     "https://retro.umoiq.com/service/publicJSONFeed?command=routeList&a=ttc"
 )
 
-ROUTES_COLS = ["route_id", "route_title", "_ingested_at", "source_file"]
+ROUTES_COLS = ["route_id", "route_short_name", "route_long_name", "_ingested_at"]
 
 
 def fetch_routes(url: str) -> dict:
@@ -46,11 +47,13 @@ def parse_route(raw: dict, ingested_at, source_file: str) -> dict | None:
     tag = raw.get("tag")
     if not tag:
         return None
+    title = raw.get("title") or ""
+    short_name, sep, rest = title.partition("-")
     return {
         "route_id": str(tag),
-        "route_title": raw.get("title"),
+        "route_short_name": short_name,
+        "route_long_name": rest.strip() if sep else title,
         "_ingested_at": ingested_at.replace(tzinfo=None),
-        "source_file": source_file,
     }
 
 

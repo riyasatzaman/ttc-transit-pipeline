@@ -4,9 +4,8 @@
 -- Route metadata almost never changes, so we keep only the most recent
 -- observation per route_id (latest _ingested_at wins).
 --
--- The UMOIQ feed gives us a single `route_title` like "7-Bathurst". We split
--- on the first hyphen into short_name ("7") and long_name ("Bathurst") so the
--- dashboard can label routes nicely.
+-- The feed gives us route_short_name and route_long_name directly, so we
+-- just pass them through.
 
 {{ config(materialized='view') }}
 
@@ -17,7 +16,8 @@ with source as (
 deduped as (
     select
         route_id,
-        route_title,
+        route_short_name,
+        route_long_name,
         _ingested_at
     from source
     where route_id is not null
@@ -29,8 +29,7 @@ deduped as (
 
 select
     route_id,
-    route_title,
-    split_part(route_title, '-', 1) as route_short_name,
-    trim(substr(route_title, position('-' in route_title) + 1)) as route_long_name,
+    route_short_name,
+    route_long_name,
     _ingested_at
 from deduped
